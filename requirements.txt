@@ -1,0 +1,13 @@
+# Python 3.10-3.13. Keep the CUDA-enabled torch supplied by DSMLP when compatible.
+torch>=2.2,<3
+torchvision>=0.17,<1
+numpy>=1.26,<3
+matplotlib>=3.8,<4
+scipy>=1.11,<2
+pandas>=2,<4
+pyarrow>=15
+pillow>=10
+click>=8
+psutil>=5
+requests>=2
+tqdm>=4

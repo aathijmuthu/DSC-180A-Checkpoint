@@ -1,0 +1,25 @@
+# Experiment notes
+
+## Predictions recorded before running experiments
+
+- At high CIFAR noise levels, denoiser estimates should show broad structure or class averages. Fine details should emerge at lower noise. The exact transition must be read from the trajectories.
+- With starting noise fixed, changing the requested class should change semantic content while potentially retaining some spatial or color structure.
+- Increasing guidance should initially improve requested-class accuracy, but may reduce variation or introduce artifacts. We do not assume a monotonic improvement in accuracy or FID.
+- Models trained on 100 or 1,000 CIFAR images may memorize. Compare nearest-training-image distances of generated images with those of real test images, and inspect pairs visually.
+- MNIST w=0 should ignore the request. Larger w may improve target matching at the expense of within-class variation. The evaluator can confidently misread malformed outputs.
+
+## Required observations after GPU runs
+
+- CIFAR trajectories (cat, seed 2): at what sigma is the class first visible for w=1 and w=4? From which sigma does each image barely change? How do the estimates differ at low noise?
+- Which CIFAR guidance weight would you choose, using accuracy, FID, FID_class, and visual inspection? Record ambiguities and artifacts.
+- For each training subset: describe FID versus update and sample/test nearest-neighbor distances. Pixel proximity is evidence of similarity, not proof of exact copying.
+- For MNIST: describe the accuracy/FID tradeoff for w=0,1,2,4 and identify malformed or ambiguous samples.
+
+## Protocol decisions
+
+- CIFAR evaluation: 1,000 generated images, balanced requested classes, 18 Heun steps; all-class FID uses NVIDIA's training reference and FID_class uses real training images of each requested class. FID_class at w=0 is omitted because requests are ignored.
+- MNIST evaluation: 1,000 generated images, balanced requested digits, 32 deterministic DDIM steps, seed 1000; reference is all 10,000 held-out test digits, features are the frozen lab classifier's 128-dimensional representation. Report this as classifier-feature FID, not Inception FID.
+- MNIST training: all 60,000 training digits, fresh U-Net initialization (ch=64), uniform time on the lab cosine path, clean-image MSE, 10% label dropout, Adam at 2e-4, EMA. The assignment does not prescribe an update count; default budget is 10,000 updates of 128 images. This objective is our implementation choice; the supplied MNIST notebook contains no training loop.
+- Small CIFAR training: the notebook's 7M-parameter SongUNet/EDM preconditioner, EDMLoss, Adam at 2e-4, EMA, 10% label dropout, 20,000 updates of 64 images, five evaluated snapshots.
+- The 50,000-image full EDM training run is optional and has not been launched.
+- Any shortened training run must report its actual updates; no smoke run is a checkpoint result.

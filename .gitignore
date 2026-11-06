@@ -1,0 +1,18 @@
+Oct_28_assignment (1).pdf
+.DS_Store
+.venv/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+downloads/
+data/
+outputs/
+logs/
+artifacts/**/*.pt
+artifacts/**/*.npz
+artifacts/**/*.npy
+artifacts/smoke*/
+report/*.aux
+report/*.log
+report/*.out
+report/*.toc

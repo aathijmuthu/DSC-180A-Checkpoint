@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,graphicx,booktabs}
+\usepackage[colorlinks=true,urlcolor=blue,citecolor=blue]{hyperref}
+\title{Conditioning, Guidance, and Memorization in Diffusion Image Generation}
+\author{Aathi Muthu\\DSC 180A, Domain D32}
+\date{November 6, 2026}
+\newcommand{\resultfigure}[2]{\IfFileExists{../artifacts/#1}{\begin{figure}[htbp]\centering\includegraphics[width=0.95\linewidth]{../artifacts/#1}\caption{#2}\end{figure}}{}}
+\begin{document}
+\maketitle
+\begin{abstract}
+Diffusion generators offer several ways to control an image, but stronger conditioning need not improve every measure of quality. This project studies class conditioning and classifier-free guidance using the design framework of Karras et al. We examine pretrained EDM models on CIFAR-10, train smaller conditional EDM networks on restricted training sets, and train a conditional U-Net from scratch on MNIST. Paired initial noise isolates the effects of class requests and guidance strength. Evaluation combines requested-class accuracy, feature-distribution distances, sampling trajectories, and comparisons with nearby training examples. The checkpoint establishes a reproducible protocol for studying the relationship between semantic control, sample diversity, and memorization. Numerical findings are reported only for completed experiments in the preliminary-results section.
+\end{abstract}
+
+\section{Introduction}
+\subsection{Problem and motivation}
+Generating an image from noise requires both a learned description of the data and a procedure for turning that description into a sample. Class-conditional generation adds a request, such as ``cat'' or the digit seven. A useful generator should satisfy that request while retaining plausible variation within the class. These goals motivate three questions: how does a condition influence denoising over the sampling trajectory; how does guidance strength change class matching and the generated distribution; and how does the amount of training data affect similarity to the training set?
+
+The central reference is \emph{Elucidating the Design Space of Diffusion-Based Generative Models} (EDM)~\cite{karras2022}. It separates choices in sampling, network preconditioning, and training, making these components easier to inspect and compare. This project applies that framework to controlled experiments with the supplied course labs. The pretrained CIFAR-10 experiments examine inference behavior, while the restricted-data runs and MNIST training examine how a network acquires conditional and unconditional estimates.
+
+\subsection{Related work}
+Denoising diffusion probabilistic models connect image generation to iterative denoising and denoising score matching~\cite{ho2020}. Song et al.~\cite{song2021} describe score-based generation through stochastic differential equations and an associated probability-flow ordinary differential equation. EDM builds on this line of work by organizing design choices and improving sampling and training~\cite{karras2022}.
+
+Classifier-free guidance combines conditional and unconditional estimates to adjust the balance between sample fidelity and diversity without requiring a classifier gradient~\cite{ho2022}. We use the course convention
+\[
+ D_w(x;\sigma,c)=D_u(x;\sigma)+w\bigl(D_c(x;\sigma,c)-D_u(x;\sigma)\bigr),
+\]
+so $w=0$ ignores the request and $w=1$ uses the conditional estimate. The released conditional EDM checkpoint has no label dropout, so the pretrained experiments use separate conditional and unconditional networks. Our trained networks instead hide the label on 10\% of training examples, allowing one network to supply both estimates. Classifiers are used only for evaluation.
+
+\subsection{Data}
+CIFAR-10 contains 32-by-32 RGB images in ten object classes, with 50,000 training images and 10,000 test images. The lab downloads a fixed Hugging Face copy and verifies checksums. Pretrained models and the all-class FID reference come from NVIDIA's EDM release. Small-data training uses balanced subsets of 100 and 1,000 training images, corresponding to 10 and 100 examples per class. Real test images provide a comparison group for nearest-training-image distances.
+
+MNIST contains 28-by-28 grayscale digit images with 60,000 training images and 10,000 test images. All training digits are available to the new conditional U-Net; no supplied generator weights are loaded for this experiment. Images are scaled to $[-1,1]$. The frozen course digit classifier supplies predicted labels and 128-dimensional features. We use the test split as the real reference for MNIST feature FID. Our present scope is digit and object-class control; no additional attribute dataset is used.
+
+\section{Experimental protocol}
+CIFAR-10 sampling uses the lab's deterministic 18-step Heun sampler. The pretrained guidance sweep uses $w\in\{0,1,1.5,2,3,4\}$, with 1,000 generated images and balanced requests at each setting. Initial noise is paired across settings. We report all-class Inception FID and class-specific FID averaged across requested classes; each conditional class comparison has 100 generated images. FID values from different feature spaces or sample counts are not directly comparable.
+
+The small CIFAR networks follow Part 6 of the lab: the approximately 7M-parameter EDM network, EDM loss, Adam with learning rate $2\cdot10^{-4}$, batch size 64, and exponential moving averages. The planned schedule is 20,000 updates with five evaluated snapshots per training subset. Training loss and snapshot FID are complemented by generated/training image pairs and pixel-distance comparisons against real test images. These measurements test for evidence of memorization rather than assuming it from the subset size alone.
+
+MNIST training uses the lab U-Net with 64 base channels and 11 label embeddings, where label 10 denotes no request. Its cosine path is $x_t=\sin(\pi t/2)x_1+\cos(\pi t/2)x_0$, with $t$ sampled uniformly and $x_0$ standard Gaussian. We minimize clean-image mean squared error using Adam at $2\cdot10^{-4}$, batch size 128, and EMA weights. This training objective is an implementation choice consistent with the lab's clean-image predictor; it is distinct from EDM's weighted loss. The default budget is 10,000 updates. Evaluation uses 32 deterministic DDIM steps, $w\in\{0,1,2,4\}$, 1,000 balanced requests per setting, and paired noise. Actual completed updates accompany every training result.
+
+\section{Preliminary results}
+\input{results.tex}
+\paragraph{Interpretation status.} Numerical tables are generated from saved experiment files. Trajectory observations, image artifacts, and a justified choice of guidance weight must be added after visual inspection; no predicted trend is presented as an observed result.
+\resultfigure{cifar/unconditional_grid.png}{Unconditional pretrained EDM samples.}
+\resultfigure{cifar/conditional_grid.png}{Conditional samples, with the same initial noise in each column.}
+\resultfigure{cifar/cfg_grid.png}{Guidance toward cat with paired initial noise.}
+\resultfigure{cifar/unconditional_trajectory.png}{Noisy states and clean-image estimates for the unconditional model.}
+\resultfigure{cifar/trajectory_w1.png}{Conditional denoising trajectory toward cat at $w=1$.}
+\resultfigure{cifar/trajectory_w4.png}{Paired denoising trajectory toward cat at $w=4$.}
+\resultfigure{cifar/fid_2d.png}{Illustration of mean and covariance contributions to FID in two dimensions.}
+\resultfigure{cifar/cfg_metrics.png}{Pretrained CIFAR-10 guidance sweep: accuracy, FID, class FID, and the unconditional class histogram.}
+\resultfigure{cifar/subset100_training.png}{Loss and snapshot FID for the 100-image training subset.}
+\resultfigure{cifar/subset100_training_2.png}{Unconditional samples at successive snapshots of the 100-image run.}
+\resultfigure{cifar/subset100_nearest.png}{Generated samples and their nearest training images for the 100-image subset.}
+\resultfigure{cifar/subset100_cfg.png}{Single-network guidance for the 100-image subset.}
+\resultfigure{cifar/subset1000_training.png}{Loss and snapshot FID for the 1,000-image training subset.}
+\resultfigure{cifar/subset1000_training_2.png}{Unconditional samples at successive snapshots of the 1,000-image run.}
+\resultfigure{cifar/subset1000_nearest.png}{Generated samples and their nearest training images for the 1,000-image subset.}
+\resultfigure{cifar/subset1000_cfg.png}{Single-network guidance for the 1,000-image subset.}
+\resultfigure{mnist/loss.png}{MNIST training loss using uniform cosine-time denoising MSE.}
+\resultfigure{mnist/cfg_grid.png}{MNIST guidance samples from the newly trained network.}
+\resultfigure{mnist/cfg_metrics.png}{MNIST requested-digit accuracy and classifier-feature FID versus guidance strength.}
+
+\section*{Reproducibility}
+Code and commands: \url{https://github.com/aathijmuthu/DSC-180A-Checkpoint}. Scripts reuse the supplied course notebook implementations and the lab's pinned NVIDIA EDM revision. Dependencies, data access, seeds, checkpoints, and commands for each artifact are documented in the repository. The optional full-data EDM training experiment is outside the current completed scope.
+
+\begin{thebibliography}{9}
+\bibitem{karras2022} T. Karras, M. Aittala, T. Aila, and S. Laine. Elucidating the Design Space of Diffusion-Based Generative Models. NeurIPS, 2022. \url{https://arxiv.org/abs/2206.00364}.
+\bibitem{ho2020} J. Ho, A. Jain, and P. Abbeel. Denoising Diffusion Probabilistic Models. NeurIPS, 2020. \url{https://arxiv.org/abs/2006.11239}.
+\bibitem{song2021} Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, and B. Poole. Score-Based Generative Modeling through Stochastic Differential Equations. ICLR, 2021. \url{https://arxiv.org/abs/2011.13456}.
+\bibitem{ho2022} J. Ho and T. Salimans. Classifier-Free Diffusion Guidance. arXiv:2207.12598, 2022. \url{https://arxiv.org/abs/2207.12598}.
+\end{thebibliography}
+\end{document}
