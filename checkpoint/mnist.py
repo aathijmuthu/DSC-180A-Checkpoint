@@ -181,7 +181,8 @@ def main():
     import torch
     device = setup(args.device)
     Path(args.out).mkdir(parents=True, exist_ok=True)
-    save_json(Path(args.out) / 'manifest.json', manifest(args, device))
+    manifest_name = 'evaluation_manifest.json' if args.evaluate_only else 'manifest.json'
+    save_json(Path(args.out) / manifest_name, manifest(args, device))
     mg = lab_module()
     if not args.evaluate_only:
         train(args, mg, device)
@@ -189,6 +190,7 @@ def main():
     net = mg.UNet(ch=64).to(device)
     net.load_state_dict(state['ema'])
     args.trained_updates = state['step']
+    print(f'Evaluating MNIST EMA at update {args.trained_updates}', flush=True)
     import matplotlib.pyplot as plt
     import numpy as np
     loss = state['losses']

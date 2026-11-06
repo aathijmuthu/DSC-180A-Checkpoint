@@ -1,0 +1,33 @@
+{
+  "n_images": 1000,
+  "n_reference": 10000,
+  "reference": "MNIST test split",
+  "feature_space": "frozen lab digit classifier, 128 features",
+  "training_updates": 6500,
+  "results": {
+    "0": {
+      "accuracy": 0.10199999809265137,
+      "fid": 135.2957265809746,
+      "nfe": 32,
+      "pixel_spread": 0.25238987505435945
+    },
+    "1": {
+      "accuracy": 0.9570000171661377,
+      "fid": 24.214805300464832,
+      "nfe": 32,
+      "pixel_spread": 0.19675363525748252
+    },
+    "2": {
+      "accuracy": 0.9990000128746033,
+      "fid": 93.99137268551658,
+      "nfe": 64,
+      "pixel_spread": 0.17804188579320906
+    },
+    "4": {
+      "accuracy": 1.0,
+      "fid": 210.65541844169184,
+      "nfe": 64,
+      "pixel_spread": 0.17043377608060836
+    }
+  }
+}

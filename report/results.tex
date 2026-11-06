@@ -4,4 +4,19 @@
 
 \paragraph{CIFAR-10 training: 1000 images.} Results have not yet been imported.
 
-\paragraph{MNIST guidance.} Training and evaluation results have not yet been imported.
+\subsection{MNIST guidance}
+
+The model was trained from scratch for 6,500 updates. Evaluation uses 1000 generated images per setting and 10000 real test images. FID is measured in the frozen digit classifier feature space.
+
+\begin{center}
+\begin{tabular}{rrr}
+\hline
+$w$ & Accuracy & Feature FID \\
+\hline
+0 & 0.102 & 135.30 \\
+1 & 0.957 & 24.21 \\
+2 & 0.999 & 93.99 \\
+4 & 1.000 & 210.66 \\
+\hline
+\end{tabular}
+\end{center}

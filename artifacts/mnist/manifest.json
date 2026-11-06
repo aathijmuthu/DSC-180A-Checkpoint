@@ -1,0 +1,27 @@
+{
+  "arguments": {
+    "out": "artifacts/mnist",
+    "device": "mps",
+    "updates": 10000,
+    "batch": 128,
+    "eval_batch": 64,
+    "lr": 0.0002,
+    "seed": 0,
+    "save_every": 500,
+    "snapshot_every": 2000,
+    "n_eval": 1000,
+    "sample_steps": 32,
+    "evaluate_only": false
+  },
+  "device": "mps",
+  "gpu": null,
+  "torch": "2.15.0",
+  "python": "3.12.15 (main, Sep 30 2026, 22:04:19) [Clang 21.0.0 (clang-2100.3.34.2)]",
+  "platform": "macOS-26.6-arm64-arm-64bit",
+  "git_commit": "db170a6770f1293689a9be3e4d605a1141ae1b3c",
+  "notebook_sha256": {
+    "dsc180-d32-mnist-guidance-lab/part2_mnist.ipynb": "e415d1991f21e15f57573d2e85c355a9d3abfe3fdd6252202a7bda69dc2d3e2d",
+    "dsc180-d32-mnist-guidance-lab/guidance_mnist.ipynb": "4028b5353d7b8a820e31d184c3eae677f79a4944b612a9f637117e56f3771f14",
+    "dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb": "a3604a1438a06df87c271d7463cf6d823e2cc04dbd680c08094d91cd39acea1a"
+  }
+}
