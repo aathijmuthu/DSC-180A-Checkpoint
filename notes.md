@@ -15,6 +15,14 @@
 - For each training subset: describe FID versus update and sample/test nearest-neighbor distances. Pixel proximity is evidence of similarity, not proof of exact copying.
 - For MNIST: describe the accuracy/FID tradeoff for w=0,1,2,4 and identify malformed or ambiguous samples.
 
+## Observations from completed local checks
+
+- Frozen evaluator real-test accuracy: CIFAR-10 94.4% on all 10,000 test images; MNIST 99.32% on all 10,000 test digits. These evaluate classifiers, not generated samples.
+- The unconditional CIFAR trajectory (seed 0, three images) starts with nearly uniform blurred denoiser estimates at sigma=80. Recognizable content appears between the displayed sigma=3.3 and sigma=1.1 panels, depending on the image. Composition is broadly stable by sigma=0.3, with later sharpening. These three examples do not establish a general decision threshold.
+- Conditional trajectory answers (cat, seed 2): cat structure is evident by sigma=1.1 for both w=1 and w=4. In the second example, w=4 already shows clearer ears/face at sigma=3.3 than w=1. This supports earlier class visibility in that example, not a universal threshold. Composition changes little by sigma=0.3; later steps sharpen detail. At low noise, w=4 increases contrast and pronounced fur/face features and can change pose or proportions.
+- Cat guidance grid: w=0 produces diverse object classes, whereas conditional rows move toward cats. Larger weights sharpen several faces, but the sixth column stays dark and ambiguous and the first column changes body shape. Larger w is not uniformly preferable by visual inspection alone. A preferred weight awaits the numerical sweep.
+- Local numerical checks passed for FID identity/translation/symmetry, null-guidance independence from the request, null-label embedding gradients under dropout, the constant-denoiser sampler, checkpoint/optimizer/RNG restoration, and figure saving. A two-update MNIST run and a one-update resume also completed. Those generated outputs are smoke checks, not reported assignment results.
+
 ## Protocol decisions
 
 - CIFAR evaluation: 1,000 generated images, balanced requested classes, 18 Heun steps; all-class FID uses NVIDIA's training reference and FID_class uses real training images of each requested class. FID_class at w=0 is omitted because requests are ignored.

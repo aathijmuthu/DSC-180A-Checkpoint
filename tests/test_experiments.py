@@ -1,6 +1,7 @@
 """Scientific invariants, independent of remote downloads or CUDA."""
 import tempfile
 import unittest
+from argparse import Namespace
 from pathlib import Path
 
 import torch
@@ -70,6 +71,19 @@ class Experiments(unittest.TestCase):
             for a, b in zip(net.parameters(), restored.parameters()):
                 self.assertTrue(torch.equal(a, b))
             self.assertEqual(len(restored_opt.state), len(opt.state))
+
+    def test_cifar_figures_save_with_current_matplotlib(self):
+        import matplotlib.pyplot as plt
+        from checkpoint.cifar import Lab
+        old_show = plt.show
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                lab = Lab(Namespace(out=directory))
+                plt.subplots()[1].plot([0, 1], [0, 1])
+                plt.show()
+                self.assertTrue((Path(directory) / 'figure.png').is_file())
+        finally:
+            plt.show = old_show
 
 
 if __name__ == '__main__':

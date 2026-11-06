@@ -61,7 +61,8 @@ def setup(device_name):
 
 def rng_state():
     import torch
-    return dict(cpu=torch.get_rng_state(), cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [])
+    return dict(cpu=torch.get_rng_state(), cuda=torch.cuda.get_rng_state_all() if torch.cuda.is_available() else [],
+                mps=torch.mps.get_rng_state() if torch.backends.mps.is_available() else None)
 
 
 def restore_rng(state):
@@ -69,6 +70,8 @@ def restore_rng(state):
     torch.set_rng_state(state['cpu'].cpu())
     if state['cuda'] and torch.cuda.is_available():
         torch.cuda.set_rng_state_all([s.cpu() for s in state['cuda']])
+    if state.get('mps') is not None and torch.backends.mps.is_available():
+        torch.mps.set_rng_state(state['mps'].cpu())
 
 
 def gaussian(features):

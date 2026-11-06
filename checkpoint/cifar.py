@@ -17,6 +17,9 @@ NOTEBOOK = ROOT / 'dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb'
 class Lab:
     def __init__(self, args):
         import matplotlib.pyplot as plt
+        # Initialize the backend before replacing show. New Matplotlib versions
+        # annotate pyplot.show during backend selection, which rejects bound methods.
+        plt.switch_backend('Agg')
         self.args = args
         self.out = Path(args.out).resolve()
         self.out.mkdir(parents=True, exist_ok=True)
@@ -47,6 +50,8 @@ class Lab:
     def prepare(self):
         self.cell(1)
         self.ns.update(DEVICE=self.args.device_object, QUICK=False, N_EVAL=self.args.n_eval, BATCH=self.args.batch)
+        print(f'Runner configuration: device={self.args.device_object}, QUICK=False, '
+              f'n_eval={self.args.n_eval}, sampling batch={self.args.batch}', flush=True)
         self.cell(3)  # checksummed downloads and pinned EDM source
         # Execute data/plot helpers while omitting pretrained loads in training-only jobs.
         source = ast.parse(cell_source(NOTEBOOK, 5))
