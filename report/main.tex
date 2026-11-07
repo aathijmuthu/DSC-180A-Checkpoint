@@ -73,12 +73,10 @@ Accuracy rises from 10.4\% at $w=0$ to 96.4\% at $w=1$ and 100\% at $w=2,4$. Fea
 \resultfigure{mnist/cfg_metrics.png}{MNIST feature FID is lowest at $w=1$; $w=2$ achieves perfect measured accuracy with lower FID than $w=4$.}
 \clearpage
 
-\section*{Reproducibility and AI use}
+\section*{Reproducibility}
 The \href{https://github.com/aathijmuthu/DSC-180A-Checkpoint}{public GitHub repository} documents data downloads, dependencies, and reproduction commands. Frozen-classifier real-test accuracies were 94.4\% on CIFAR-10 and 99.32\% on MNIST. The encouraged full-size EDM training run was prepared but not run.
 
 MNIST resumed at update 6,500 with its training-noise stream restarted; all guidance settings use the same final weights and paired evaluation noise. The 100-image CIFAR run transferred from Mac to CUDA at update 1,500; the 1,000-image run used CUDA throughout. Manifests and notes record these details.
-
-I used OpenAI Codex for development, debugging, experiment automation, and writing assistance. My understanding of the methods comes from reading the EDM paper myself.
 
 \begin{thebibliography}{9}
 \bibitem{karras2022} T. Karras, M. Aittala, T. Aila, and S. Laine. Elucidating the Design Space of Diffusion-Based Generative Models. NeurIPS, 2022. \url{https://arxiv.org/abs/2206.00364}.
@@ -86,4 +84,23 @@ I used OpenAI Codex for development, debugging, experiment automation, and writi
 \bibitem{song2021} Y. Song, J. Sohl-Dickstein, D. P. Kingma, A. Kumar, S. Ermon, and B. Poole. Score-Based Generative Modeling through Stochastic Differential Equations. ICLR, 2021. \url{https://arxiv.org/abs/2011.13456}.
 \bibitem{ho2022} J. Ho and T. Salimans. Classifier-Free Diffusion Guidance. arXiv:2207.12598, 2022. \url{https://arxiv.org/abs/2207.12598}.
 \end{thebibliography}
+\clearpage
+\appendix
+\section{AI-assisted workflow}
+\paragraph{Human contribution and direction.}
+I read the EDM paper and independently developed report material before using AI. I supplied the assignment specifications and course notebooks, directed project priorities, provided computing constraints, and requested revisions to the repository and presentation.
+
+\paragraph{Selected prompts and requested work.}
+These summarize my requests rather than quote them verbatim:
+\begin{itemize}
+\item Inspect the supplied materials and propose a plan for the required experiments.
+\item Use the available DSMLP resources, investigate interrupted or slow runs, and continue independent tasks while experiments ran.
+\item Shorten the README and report, review figure placement, and audit the repository against the instructions.
+\end{itemize}
+
+\paragraph{How AI outputs were incorporated.}
+Working from those materials and requests, OpenAI Codex helped translate requirements into implementation and evaluation settings. Its assistance included experiment code, debugging, execution, metric interpretation, plotting, notebook answers, related-work summaries, documentation, and report drafts and revisions. Generated code reused the supplied course implementations, and figures came from saved experiment outputs.
+
+\paragraph{Verification.}
+AI-assisted checks included nine automated tests, training/resume smoke checks, weight-checksum verification, comparisons between tables and saved metrics, notebook syntax and link checks, figure inspection, and PDF compilation. These checks evaluated software behavior and artifact consistency; scientific interpretation and final writing require my own review.
 \end{document}

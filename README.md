@@ -2,6 +2,8 @@
 
 Individual project by Aathi Muthu, based on Karras et al., [Elucidating the Design Space of Diffusion-Based Generative Models](https://arxiv.org/abs/2206.00364), [NVlabs/edm](https://github.com/NVlabs/edm), and the supplied D32 labs.
 
+**Contributions and AI use.** I read the EDM paper and independently drafted report sections before using AI assistance. I guided the project through the assignment specifications, course notebooks, computing constraints, and follow-up requests. OpenAI Codex assisted with planning, implementation settings, coding, debugging, experiment execution, metric analysis, figures, related references, documentation, and report drafting and revision. My understanding of EDM comes from reading the paper myself. The report appendix documents the AI-assisted workflow in more detail.
+
 [Report PDF](report/main.pdf) · [Results](RESULTS.md) · [Predictions and observations](notes.md)
 
 Completed notebook answers: [CIFAR lab](dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb) and [MNIST guidance lab, Parts 1–4](dsc180-d32-mnist-guidance-lab/guidance_mnist.ipynb). The latter includes executed comparisons using the supplied frozen generator; the checkpoint's MNIST model is trained separately from scratch. `part2_mnist.ipynb` is an optional course reference; E7 was not run.
@@ -61,7 +63,3 @@ python -m unittest discover -s tests -v
 ```
 
 The [Colab runner](https://colab.research.google.com/github/aathijmuthu/DSC-180A-Checkpoint/blob/main/colab_checkpoint.ipynb) is a CIFAR GPU fallback. Optional full-data preparation: `python -m checkpoint.prepare_full_edm` exports the 50,000-image dataset and writes a launch script without starting training.
-
-## AI use
-
-I used OpenAI Codex for development, debugging, experiment automation, and writing assistance. My understanding of the methods comes from reading the EDM paper myself.
