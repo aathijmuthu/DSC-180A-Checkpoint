@@ -5,81 +5,80 @@
 \title{Conditioning, Guidance, and Memorization in Diffusion Image Generation}
 \author{Aathi Muthu\\DSC 180A, Domain D32}
 \date{November 6, 2026}
-\newcommand{\resultfigure}[2]{\IfFileExists{../artifacts/#1}{\begin{figure}[htbp]\centering\includegraphics[width=0.95\linewidth]{../artifacts/#1}\caption{#2}\end{figure}}{}}
+\newcommand{\resultfigure}[2]{\begin{figure}[htbp]\centering\includegraphics[width=0.95\linewidth]{../artifacts/#1}\caption{#2}\end{figure}}
 \begin{document}
 \maketitle
 \begin{abstract}
-Diffusion generators offer several ways to control an image, but stronger conditioning need not improve every measure of quality. This project studies class conditioning and classifier-free guidance using the design framework of Karras et al. We examine pretrained EDM models on CIFAR-10, investigate smaller conditional EDM networks on restricted training sets, and train a conditional U-Net from scratch on MNIST. Paired initial noise isolates the effects of class requests and guidance strength. Evaluation combines requested-class accuracy, feature-distribution distances, sampling trajectories, and comparisons with nearby training examples. In the completed MNIST experiment, increasing guidance from one to two raises requested-digit accuracy from 96.4\% to 100\%, while classifier-feature FID increases from 22.10 to 85.14. This illustrates a measurable tradeoff between class matching and agreement with the real feature distribution. Numerical findings are reported only for completed experiments in the preliminary-results section.
+This project studies class conditioning and classifier-free guidance using pretrained EDM models on CIFAR-10, smaller EDM networks trained on restricted subsets, and a conditional U-Net trained from scratch on MNIST. Paired noise allows controlled comparisons of guidance strength. Evaluation combines requested-class accuracy, feature FID, denoising trajectories, and nearest-training-image comparisons. Moderate guidance improves class matching, while stronger guidance can worsen FID. The 100-image CIFAR model produces close training-image matches, showing that falling training loss need not imply generalization.
 \end{abstract}
 
 \section{Introduction}
 \subsection{Problem and motivation}
-Generating an image from noise requires both a learned description of the data and a procedure for turning that description into a sample. Class-conditional generation adds a request, such as ``cat'' or the digit seven. A useful generator should satisfy that request while retaining plausible variation within the class. These goals motivate three questions: how does a condition influence denoising over the sampling trajectory; how does guidance strength change class matching and the generated distribution; and how does the amount of training data affect similarity to the training set?
+A class-conditional image generator should satisfy a requested class while preserving realistic variation. We examine when class structure emerges during denoising, how guidance changes accuracy and distributional similarity, and whether small training sets lead to memorization.
 
-The central reference is \emph{Elucidating the Design Space of Diffusion-Based Generative Models} (EDM)~\cite{karras2022}. It separates choices in sampling, network preconditioning, and training, making these components easier to inspect and compare. This project applies that framework to controlled experiments with the supplied course labs. The pretrained CIFAR-10 experiments examine inference behavior, while the restricted-data runs and MNIST training examine how a network acquires conditional and unconditional estimates.
-
-This separation matters because improvements to the sampling procedure can be studied with a pretrained model held fixed. For example, EDM's Heun sampler corrects an Euler proposal using a second slope evaluation and uses an Euler step when the next noise level is zero. Network preconditioning addresses a different issue: input and output scales vary strongly with noise. EDM represents the denoiser as a noise-dependent skip connection plus a scaled network prediction, and combines this parameterization with a weighted denoising loss and a log-normal distribution of training noise levels. Our sampling and training experiments keep these roles distinct.
+Karras et al.'s \emph{Elucidating the Design Space of Diffusion-Based Generative Models} (EDM)~\cite{karras2022} separates sampling, network preconditioning, and training choices. Its Heun sampler refines Euler proposals, while noise-dependent preconditioning stabilizes the denoiser's input and output scales. We use the supplied labs to study sampling with fixed pretrained networks and training with restricted data.
 
 \subsection{Related work}
-Denoising diffusion probabilistic models connect image generation to iterative denoising and denoising score matching~\cite{ho2020}. Song et al.~\cite{song2021} describe score-based generation through stochastic differential equations and an associated probability-flow ordinary differential equation. EDM builds on this line of work by organizing design choices and improving sampling and training~\cite{karras2022}.
+Denoising diffusion probabilistic models generate images through iterative denoising~\cite{ho2020}. Score-based models describe generation using stochastic differential equations and an associated ODE~\cite{song2021}. EDM organizes and improves these design choices~\cite{karras2022}.
 
-Classifier-free guidance combines conditional and unconditional estimates to adjust the balance between sample fidelity and diversity without requiring a classifier gradient~\cite{ho2022}. We use the course convention
+Classifier-free guidance~\cite{ho2022} combines two denoiser estimates:
 \[
- D_w(x;\sigma,c)=D_u(x;\sigma)+w\bigl(D_c(x;\sigma,c)-D_u(x;\sigma)\bigr),
+ D_w(x;\sigma,c)=D_u(x;\sigma)+w\bigl(D_c(x;\sigma,c)-D_u(x;\sigma)\bigr).
 \]
-so $w=0$ ignores the request and $w=1$ uses the conditional estimate. The released conditional EDM checkpoint has no label dropout, so the pretrained experiments use separate conditional and unconditional networks. Our trained networks instead hide the label on 10\% of training examples, allowing one network to supply both estimates. Classifiers are used only for evaluation.
+Thus $w=0$ ignores the request and $w=1$ uses the conditional estimate. The pretrained experiments use separate conditional and unconditional EDM networks. Our trained models use 10\% label dropout so one network learns both estimates. Frozen classifiers evaluate the samples.
 
 \subsection{Data}
-CIFAR-10 contains 32-by-32 RGB images in ten object classes, with 50,000 training images and 10,000 test images. The lab downloads a fixed Hugging Face copy and verifies checksums. Pretrained models and the all-class FID reference come from NVIDIA's EDM release. Small-data training uses balanced subsets of 100 and 1,000 training images, corresponding to 10 and 100 examples per class. Real test images provide a comparison group for nearest-training-image distances.
+CIFAR-10 has 50,000 training and 10,000 test images: 32-by-32 RGB images in ten classes. Restricted-data experiments use balanced subsets of 100 and 1,000 training images. Test images provide the nearest-training-image baseline.
 
-MNIST contains 28-by-28 grayscale digit images with 60,000 training images and 10,000 test images. All training digits are available to the new conditional U-Net; no supplied generator weights are loaded for this experiment. Images are scaled to $[-1,1]$. The frozen course digit classifier supplies predicted labels and 128-dimensional features. We use the test split as the real reference for MNIST feature FID. Our present scope is digit and object-class control; no additional attribute dataset is used.
+MNIST has 60,000 training and 10,000 test digits: 28-by-28 grayscale images scaled to $[-1,1]$. We train on all 60,000 digits from random initialization. The frozen lab classifier provides labels and 128-dimensional features; all 10,000 test digits form the feature-FID reference.
 
 \section{Experimental protocol}
-CIFAR-10 sampling uses the lab's deterministic 18-step Heun sampler. The pretrained guidance sweep uses $w\in\{0,1,1.5,2,3,4\}$, with 1,000 generated images and balanced requests at each setting. Initial noise is paired across settings. We report all-class Inception FID and class-specific FID averaged across requested classes; each conditional class comparison has 100 generated images. FID values from different feature spaces or sample counts are not directly comparable.
+Pretrained CIFAR sampling uses 18 deterministic Heun steps and 1,000 balanced requests per weight at $w=0,1,1.5,2,3,4$, with paired noise. Global Inception FID uses NVIDIA's 50,000-image training reference. Class FID averages ten comparisons of 100 generated images against 5,000 real images per class; it is omitted at $w=0$. Accuracy measures evaluator agreement, while global FID ignores the requested class. These small-sample FIDs are not directly comparable with EDM's published 50,000-sample scores.
 
-Requested-class accuracy measures agreement with the evaluator, while all-class FID ignores which class was requested. Class-specific FID adds class information but is based on only 100 generated images per class. None of these measures alone establishes perceptual quality, so we inspect sample grids alongside the scores. Inception features are computed on the selected accelerator, then transferred to CPU for float64 covariance and distance calculations.
+Each restricted-data run uses the lab's 7M-parameter EDM network, EDMLoss, 10\% label dropout, Adam at $2\cdot10^{-4}$, batch 64, and EMA. Both complete 20,000 updates, with 1,000 unconditional samples evaluated every 4,000 updates. Nearest-image comparisons use 100 generated and 100 real test images.
 
-The small CIFAR networks follow Part 6 of the lab: the approximately 7M-parameter EDM network, EDM loss, Adam with learning rate $2\cdot10^{-4}$, batch size 64, and exponential moving averages. Both runs completed 20,000 updates with five evaluated snapshots per training subset. Training loss and snapshot FID are complemented by generated/training image pairs and pixel-distance comparisons against real test images. These measurements test for evidence of memorization rather than assuming it from the subset size alone.
-
-MNIST training uses the lab U-Net with 64 base channels and 11 label embeddings, where label 10 denotes no request. Its cosine path is $x_t=\sin(\pi t/2)x_1+\cos(\pi t/2)x_0$, with $t$ sampled uniformly and $x_0$ standard Gaussian. We minimize clean-image mean squared error using Adam at $2\cdot10^{-4}$, batch size 128, and EMA weights, completing 10,000 updates. This training objective is an implementation choice consistent with the lab's clean-image predictor; it is distinct from EDM's weighted loss. Evaluation uses 32 deterministic DDIM steps, $w\in\{0,1,2,4\}$, 1,000 balanced requests per setting, and paired noise.
+MNIST uses the lab U-Net with 64 base channels, null label 10, Adam at $2\cdot10^{-4}$, batch 128, EMA, and 10,000 updates. Training minimizes clean-image MSE at uniformly sampled times on the lab's cosine path. Evaluation uses 32 DDIM steps and 1,000 balanced requests at $w=0,1,2,4$, with paired noise. Its classifier-feature FID has a separate scale from CIFAR Inception FID.
 
 \section{Preliminary results}
-\paragraph{Evaluator checks.} Before scoring generated samples, the frozen classifiers achieved 94.4\% accuracy on all 10,000 real CIFAR-10 test images and 99.32\% on all 10,000 real MNIST test images in local checks. These rates calibrate the evaluators; they are not generator accuracy results.
-\paragraph{Unconditional trajectory.} In the three displayed seed-0 examples, the denoiser estimate is a nearly uniform blur at $\sigma=80$. Coarse structure emerges as noise decreases, and recognizable content appears between the displayed levels $\sigma\approx3.3$ and $\sigma\approx1.1$. Composition changes little from $\sigma\approx0.3$ onward, although edges and texture continue to sharpen. This observation concerns these three trajectories, not a universal class-decision threshold.
-\paragraph{Conditional trajectories.} For the three cat requests at seed 2, recognizable cat structure is evident by $\sigma\approx1.1$ for both $w=1$ and $w=4$. In the second example, the $w=4$ estimate already has clearer ears and a face at $\sigma\approx3.3$, while the $w=1$ estimate remains more ambiguous. Thus stronger guidance can expose class structure earlier in these examples, but the displayed grid does not establish one threshold shared by all images. Composition is broadly stable by $\sigma\approx0.3$. At low noise, $w=4$ produces stronger contrast and more pronounced fur and facial features; it also changes pose and proportions relative to $w=1$.
-\paragraph{Guidance grid.} At $w=0$, the paired seeds produce several different object classes, while conditional and guided rows move toward cats. Strong guidance sharpens some faces but does not resolve every sample: the sixth column remains very dark even at $w=4$, and the first column changes body shape substantially. These examples do not justify treating larger guidance as uniformly better.
-\paragraph{CIFAR-10 guidance sweep.} The unconditional and conditional baselines have nearly identical all-class FID (30.97 and 30.93), despite requested-class accuracies of 11.0\% and 95.8\%. This illustrates why all-class FID alone cannot assess conditioning. We favor $w=1.5$ in this sweep: accuracy increases to 98.6\%, all-class FID remains nearly unchanged at 30.96, and class FID is lowest among tested weights at 107.16. At $w=2$, accuracy reaches 99.5\%, with all-class FID 32.22. Weights three and four provide no further accuracy improvement and worsen both FID measures. These are preliminary comparisons from one paired sweep; small differences have not been tested across independent seeds.
-\paragraph{Restricted-data training.} In the completed 100-image run, FID rises from 73.04 at update 4,000 to 106.83 at update 20,000, while the corresponding 200-update mean training losses fall from 0.0367 to 0.0179. The final median nearest-training-image distance is 1.19 for generated images versus 23.67 for real test images. Lower training loss therefore does not imply a better match to the full CIFAR-10 population. The very close training-image matches are consistent with memorization of the restricted training set.
-For 1,000 training images, FID also rises, from 92.00 to 132.47, while the corresponding mean losses fall from 0.1788 to 0.0694. The final generated/test nearest-image medians are 13.86/21.25. The displayed outputs include blurry and partial matches, so the evidence for exact copying is much weaker than in the 100-image run. Lower pixel distance alone can also reflect blurred averages. These fixed-budget runs do not establish that adding data harms diffusion models: the larger-subset network has visibly weaker samples and conditional accuracy at the same update count.
-\paragraph{Guidance with the trained CIFAR networks.} The final grids score 100 generated images per weight. For the 100-image model, requested-class accuracy is 7\%, 96\%, 100\%, and 100\% at $w=0,1,2,4$. For the 1,000-image model it is 10\%, 47\%, 74\%, and 84\%. Guidance improves measured class adherence in both cases, but the larger-subset outputs remain blurry and several are ambiguous even at $w=4$. These grid accuracies are separate from the 1,000-image pretrained sweep.
-\paragraph{MNIST guidance.} After 10,000 training updates, requested-digit accuracy rises from 10.4\% at $w=0$ to 96.4\% at $w=1$ and 100\% at both $w=2$ and $w=4$. Classifier-feature FID is lowest at $w=1$ (22.10), increasing to 85.14 at $w=2$ and 182.57 at $w=4$. Thus improved class matching does not imply a closer match to the real feature distribution. Mean within-class pixel variance also decreases from 0.196 at $w=1$ to 0.173 at $w=4$, consistent with reduced variation, though pixel variance alone does not establish perceptual quality. We would choose $w=1$ for the best measured feature-distribution match, or $w=2$ when class adherence takes priority. Increasing to $w=4$ provides no measured accuracy gain over $w=2$ and substantially worsens feature FID.
+\paragraph{Trajectories.}
+In the three unconditional examples, recognizable content emerges between $\sigma\approx3.3$ and $1.1$; composition is mostly stable by $\sigma\approx0.3$. For paired cat trajectories, both $w=1$ and $w=4$ show cat structure by $\sigma\approx1.1$. The second $w=4$ example shows clearer ears and a face already at $\sigma\approx3.3$. Both change little in composition below $\sigma\approx0.3$, but $w=4$ strengthens contrast and facial features and changes some poses or proportions. These thresholds describe the displayed examples.
+
+\paragraph{Pretrained CIFAR guidance.}
+Global FID is nearly identical at $w=0$ and $w=1$ (30.97/30.93), although requested-class accuracy differs sharply (11.0\%/95.8\%). I favor $w=1.5$: accuracy reaches 98.6\%, global FID is 30.96, and class FID is lowest at 107.16. Weight two gives the highest accuracy, 99.5\%, at global FID 32.22. Larger weights worsen both FIDs without improving accuracy. Visually, stronger guidance sharpens several cats, but the sixth column remains dark and ambiguous. These single-seed comparisons do not establish significance for small score differences.
+
+\paragraph{Restricted-data training.}
+For 100 training images, FID rises from 73.04 to 106.83 while the 200-update mean loss before the first and last snapshots falls from 0.0367 to 0.0179. Generated/test median nearest-training-image distances are 1.19/23.67; close object and background matches support memorization. For 1,000 images, FID rises from 92.00 to 132.47, loss falls from 0.1788 to 0.0694, and distance medians are 13.86/21.25. Many outputs are blurry partial matches, so exact-copy evidence is weaker. Lower pixel distances can also reflect blurred averages; these fixed-budget runs do not show that more data harms diffusion models.
+
+The trained-model CFG grids score 100 images per weight. At $w=0,1,2,4$, accuracies are 7\%, 96\%, 100\%, 100\% for the 100-image model and 10\%, 47\%, 74\%, 84\% for the 1,000-image model. Guidance improves class matching, but visible artifacts remain.
+
+\paragraph{MNIST guidance.}
+Accuracy rises from 10.4\% at $w=0$ to 96.4\% at $w=1$ and 100\% at $w=2,4$. Feature FID is lowest at $w=1$ (22.10), then rises to 85.14 and 182.57. I favor $w=1$ for distributional similarity or $w=2$ for class adherence. Weight four adds no measured accuracy gain. The requested seven is clearer at higher weights, but classifier decisions alone do not establish perceptual quality.
+
 \input{results.tex}
-\paragraph{Result status.} All required experiments are complete. The tables use their saved numerical outputs. The optional full-network training run was prepared but not run.
-\resultfigure{cifar/unconditional_grid.png}{Unconditional pretrained EDM samples.}
-\resultfigure{cifar/conditional_grid.png}{Conditional samples, with the same initial noise in each column.}
-\resultfigure{cifar/cfg_grid.png}{Guidance toward cat with paired noise: stronger guidance emphasizes cat features, while the dark sixth-column example remains ambiguous.}
-\resultfigure{cifar/unconditional_trajectory.png}{Unconditional noisy states and clean-image estimates: broad structure precedes recognizable content, and late steps mainly refine detail in these three examples.}
-\resultfigure{cifar/trajectory_w1.png}{Conditional cat trajectories at $w=1$: class structure becomes recognizable at intermediate noise and late steps refine detail.}
-\resultfigure{cifar/trajectory_w4.png}{Paired cat trajectories at $w=4$: the second image shows clearer class structure earlier, and low-noise predictions have stronger contrast.}
-\resultfigure{cifar/fid_2d.png}{Illustration of mean and covariance contributions to FID in two dimensions.}
-\resultfigure{cifar/cfg_metrics.png}{Pretrained CIFAR-10 guidance sweep: accuracy, FID, class FID, and the unconditional class histogram.}
-\resultfigure{cifar/subset100_training.png}{For 100 training images, loss falls while FID rises across saved snapshots.}
-\resultfigure{cifar/subset100_training_2.png}{Unconditional samples at successive snapshots of the 100-image run.}
-\resultfigure{cifar/subset100_nearest.png}{The 100-image model produces very close matches to training-image objects and backgrounds.}
+
+\resultfigure{cifar/unconditional_grid.png}{Unconditional samples show varied object classes without a class request.}
+\resultfigure{cifar/conditional_grid.png}{Changing the class changes object identity while some colors and layouts persist within paired-noise columns.}
+\resultfigure{cifar/cfg_grid.png}{Stronger cat guidance sharpens several faces, but the dark sixth-column sample remains ambiguous.}
+\resultfigure{cifar/unconditional_trajectory.png}{Recognizable content emerges at intermediate noise; late steps mainly sharpen detail. Upper rows show noisy states and lower rows show denoiser estimates.}
+\resultfigure{cifar/trajectory_w1.png}{At $w=1$, cat structure is evident by $\sigma\approx1.1$ and composition is mostly stable below $\sigma\approx0.3$.}
+\resultfigure{cifar/trajectory_w4.png}{The paired $w=4$ trajectory shows clearer class structure earlier in the second example and stronger contrast at low noise.}
+\resultfigure{cifar/cfg_metrics.png}{Moderate guidance improves requested-class accuracy; larger weights worsen global and class FID.}
+\resultfigure{cifar/subset100_training.png}{With 100 training images, training loss falls while snapshot FID rises.}
+\resultfigure{cifar/subset100_nearest.png}{The 100-image model closely matches training-image objects and backgrounds, with much smaller nearest-image distances than real test examples.}
 \resultfigure{cifar/subset100_cfg.png}{The 100-image model's requested-class accuracy rises from 96\% at $w=1$ to 100\% at $w=2$.}
-\resultfigure{cifar/subset1000_training.png}{For 1,000 training images, loss falls while FID rises; the fixed update budget does not produce a strong unconditional generator.}
-\resultfigure{cifar/subset1000_training_2.png}{Unconditional samples at successive snapshots of the 1,000-image run.}
-\resultfigure{cifar/subset1000_nearest.png}{The 1,000-image model shows approximate training-image affinity, with many blurred outputs rather than uniform exact copying.}
-\resultfigure{cifar/subset1000_cfg.png}{For the 1,000-image model, guidance improves requested-class accuracy from 47\% at $w=1$ to 84\% at $w=4$, while visible artifacts remain.}
-\resultfigure{mnist/loss.png}{MNIST training loss using uniform cosine-time denoising MSE.}
-\resultfigure{mnist/cfg_grid.png}{MNIST guidance samples from the newly trained network.}
-\resultfigure{mnist/cfg_metrics.png}{MNIST requested-digit accuracy and classifier-feature FID versus guidance strength.}
+\resultfigure{cifar/subset1000_training.png}{With 1,000 training images, lower loss also accompanies higher snapshot FID.}
+\resultfigure{cifar/subset1000_nearest.png}{The 1,000-image model shows partial training-image matches and blurred outputs; exact-copy evidence is weaker than for 100 images.}
+\resultfigure{cifar/subset1000_cfg.png}{Guidance improves the 1,000-image model's accuracy from 47\% at $w=1$ to 84\% at $w=4$, while artifacts remain.}
+\resultfigure{mnist/cfg_grid.png}{Guidance improves requested-digit matching; the requested seven becomes clearer at higher weights.}
+\resultfigure{mnist/cfg_metrics.png}{MNIST feature FID is lowest at $w=1$; $w=2$ achieves perfect measured accuracy with lower FID than $w=4$.}
+\clearpage
 
-\section*{Reproducibility}
-Code and commands: \url{https://github.com/aathijmuthu/DSC-180A-Checkpoint}. Scripts reuse the supplied course notebook implementations and the lab's pinned NVIDIA EDM revision. Dependencies, data access, seeds, checkpoints, and commands for each artifact are documented in the repository. The optional full-data EDM training experiment is outside the current completed scope.
+\section*{Reproducibility and AI use}
+The \href{https://github.com/aathijmuthu/DSC-180A-Checkpoint}{public GitHub repository} documents data downloads, dependencies, and reproduction commands. Frozen-classifier real-test accuracies were 94.4\% on CIFAR-10 and 99.32\% on MNIST. The encouraged full-size EDM training run was prepared but not run.
 
-The local MNIST run resumed at update 6,500. Its early checkpoint predated MPS random-state persistence, so the subsequent training-noise stream restarted; current checkpoints preserve CPU, CUDA, and MPS random states. All guidance comparisons nevertheless use the same final weights and paired evaluation noise. Exact historical weights are saved locally, and the repository documents the training protocol and this interruption.
-The 100-image CIFAR run continued on CUDA from a 1,500-update Mac checkpoint; its later evaluations and the full 1,000-image run used the DSMLP GPU. Hardware, software versions, and run arguments are recorded in the saved manifests.
+MNIST resumed at update 6,500 with its training-noise stream restarted; all guidance settings use the same final weights and paired evaluation noise. The 100-image CIFAR run transferred from Mac to CUDA at update 1,500; the 1,000-image run used CUDA throughout. Manifests and notes record these details.
+
+I used OpenAI Codex to help with code development, debugging, experiment automation, and wording edits. My understanding of the methods comes from reading the EDM paper myself.
 
 \begin{thebibliography}{9}
 \bibitem{karras2022} T. Karras, M. Aittala, T. Aila, and S. Laine. Elucidating the Design Space of Diffusion-Based Generative Models. NeurIPS, 2022. \url{https://arxiv.org/abs/2206.00364}.

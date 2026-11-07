@@ -24,7 +24,7 @@ def main():
         rows = [[w, f'{r["accuracy"]:.3f}', f'{r["fid"]:.2f}',
                  '--' if r['fid_class'] is None else f'{r["fid_class"]:.2f}'] for w, r in data['results'].items()]
         lines += ['\\subsection{Pretrained CIFAR-10 guidance}',
-                  f'Table: {data["n_images"]} generated images per setting, balanced requests. '
+                  f'{data["n_images"]:,} generated images per setting, balanced requests. '
                   'Class FID uses 100 generated images per class and is omitted for $w=0$.',
                   table(['$w$', 'Accuracy', 'FID', 'Class FID'], rows)]
         md += ['## CIFAR-10 guidance', '', '| w | Accuracy | FID | FID_class |', '|---|---|---|---|']
@@ -37,19 +37,13 @@ def main():
         if path.exists():
             data = json.loads(path.read_text())
             lines += [f'\\subsection{{CIFAR-10 training: {size} images}}',
-                      f'The saved run reached {data["updates"]:,} updates; snapshot FID uses {data["n_eval"]} generated images.',
+                      f'{data["updates"]:,} updates; {data["n_eval"]:,} unconditional samples per snapshot.',
                       table(['Update', 'FID'], [[s, f'{v:.2f}'] for s, v in data['fids'].items()])]
             md += [f'## CIFAR subset {size}: {data["updates"]} updates', '', '| Update | FID |', '|---|---|']
             md += [f'| {s} | {v:.2f} |' for s, v in data['fids'].items()]
             near = ROOT / f'artifacts/cifar/subset{size}_nearest.json'
             if near.exists():
                 distances = json.loads(near.read_text())
-                lines += [f'Median nearest-training-image pixel distance: generated '
-                          f'{distances["median_generated_distance"]:.2f}; real test images '
-                          f'{distances["median_test_distance"]:.2f}. The comparison uses 100 images per group.']
-                if distances['median_generated_distance'] < distances['median_test_distance']:
-                    lines += ['Generated samples are closer to the training set than real test images by this metric, '
-                              'but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.']
                 md += ['', f'Median nearest-training-image distance: generated '
                        f'{distances["median_generated_distance"]:.2f}; real test '
                        f'{distances["median_test_distance"]:.2f}.', '']
@@ -59,9 +53,8 @@ def main():
         data = json.loads(mnist.read_text())
         rows = [[w, f'{r["accuracy"]:.3f}', f'{r["fid"]:.2f}'] for w, r in data['results'].items()]
         lines += ['\\subsection{MNIST guidance}',
-                  f'The model was trained from scratch for {data["training_updates"]:,} updates. '
-                  f'Evaluation uses {data["n_images"]} generated images per setting and {data["n_reference"]} real test images. '
-                  'FID is measured in the frozen digit classifier feature space.',
+                  f'{data["training_updates"]:,} training updates; {data["n_images"]:,} samples per setting. '
+                  f'Feature FID uses {data["n_reference"]:,} real test images.',
                   table(['$w$', 'Accuracy', 'Feature FID'], rows)]
         md += ['## MNIST guidance', '', '| w | Accuracy | Classifier-feature FID |', '|---|---|---|']
         md += ['| ' + ' | '.join(row) + ' |' for row in rows]

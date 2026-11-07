@@ -1,6 +1,6 @@
 \subsection{Pretrained CIFAR-10 guidance}
 
-Table: 1000 generated images per setting, balanced requests. Class FID uses 100 generated images per class and is omitted for $w=0$.
+1,000 generated images per setting, balanced requests. Class FID uses 100 generated images per class and is omitted for $w=0$.
 
 \begin{center}
 \begin{tabular}{rrrr}
@@ -19,7 +19,7 @@ $w$ & Accuracy & FID & Class FID \\
 
 \subsection{CIFAR-10 training: 100 images}
 
-The saved run reached 20,000 updates; snapshot FID uses 1000 generated images.
+20,000 updates; 1,000 unconditional samples per snapshot.
 
 \begin{center}
 \begin{tabular}{rr}
@@ -35,13 +35,9 @@ Update & FID \\
 \end{tabular}
 \end{center}
 
-Median nearest-training-image pixel distance: generated 1.19; real test images 23.67. The comparison uses 100 images per group.
-
-Generated samples are closer to the training set than real test images by this metric, but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.
-
 \subsection{CIFAR-10 training: 1000 images}
 
-The saved run reached 20,000 updates; snapshot FID uses 1000 generated images.
+20,000 updates; 1,000 unconditional samples per snapshot.
 
 \begin{center}
 \begin{tabular}{rr}
@@ -57,13 +53,9 @@ Update & FID \\
 \end{tabular}
 \end{center}
 
-Median nearest-training-image pixel distance: generated 13.86; real test images 21.25. The comparison uses 100 images per group.
-
-Generated samples are closer to the training set than real test images by this metric, but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.
-
 \subsection{MNIST guidance}
 
-The model was trained from scratch for 10,000 updates. Evaluation uses 1000 generated images per setting and 10000 real test images. FID is measured in the frozen digit classifier feature space.
+10,000 training updates; 1,000 samples per setting. Feature FID uses 10,000 real test images.
 
 \begin{center}
 \begin{tabular}{rrr}
