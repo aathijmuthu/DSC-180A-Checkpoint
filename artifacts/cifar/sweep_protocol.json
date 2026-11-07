@@ -1,0 +1,7 @@
+{
+  "batch": 32,
+  "n_eval": 1000,
+  "steps": 18,
+  "seed_base": 1000,
+  "notebook_sha256": "a3604a1438a06df87c271d7463cf6d823e2cc04dbd680c08094d91cd39acea1a"
+}

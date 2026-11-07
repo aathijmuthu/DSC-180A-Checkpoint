@@ -85,6 +85,47 @@ class Experiments(unittest.TestCase):
         finally:
             plt.show = old_show
 
+    def test_cifar_sweep_recovers_completed_weights_after_failure(self):
+        import json
+        import matplotlib.pyplot as plt
+        from checkpoint.cifar import Lab
+        old_show = plt.show
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                lab = Lab(Namespace(out=directory, batch=2, n_eval=20))
+                real = torch.randn(20, 3, generator=torch.Generator().manual_seed(3)).double()
+                labels = torch.arange(20) % 10
+                calls, feature_calls, fail = [], [], [True]
+                def generate(w):
+                    calls.append(w)
+                    if w == 2 and fail[0]:
+                        raise RuntimeError('simulated interruption')
+                    return real + w, labels
+                def features(images):
+                    feature_calls.append(len(images))
+                    return images
+                lab.ns.update(train_images=real, train_labels=labels, W=[0, 1, 2],
+                              gaussian=gaussian, frechet=frechet, features=features,
+                              generate=generate, classify=lambda images: torch.zeros(len(images), dtype=torch.long),
+                              fid_class=lambda feats, requested: 0.)
+                lab.ns['MU_REF'], lab.ns['SIGMA_REF'] = gaussian(real)
+                lab.cell = lambda *args, **kwargs: None
+                with self.assertRaisesRegex(RuntimeError, 'simulated interruption'):
+                    lab.sweep()
+                saved = json.loads((Path(directory) / 'cfg_sweep_n20.json').read_text())
+                self.assertEqual(set(saved['results']), {'0', '1'})
+                self.assertFalse(saved['complete'])
+                completed_feature_calls = len(feature_calls)
+                fail[0] = False
+                lab.sweep()
+                saved = json.loads((Path(directory) / 'cfg_sweep_n20.json').read_text())
+                self.assertTrue(saved['complete'])
+                self.assertEqual(len(feature_calls), completed_feature_calls + 1)
+                self.assertAlmostEqual(saved['results']['2']['fid'], 12., places=7)
+                self.assertEqual(calls, [0, 1, 2, 2, 0])
+        finally:
+            plt.show = old_show
+
 
 if __name__ == '__main__':
     unittest.main()

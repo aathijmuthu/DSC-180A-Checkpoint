@@ -58,6 +58,8 @@ All-class FID uses NVIDIA's 50,000-image training reference. FID_class averages 
 
 Small CIFAR training follows the notebook: balanced subsets of 100 and 1,000 images; 7M-parameter SongUNet with EDM preconditioning and EDMLoss; label dropout 0.1; Adam at 2e-4; batch 64; EMA; 20,000 updates per subset; five snapshot evaluations of 1,000 unconditional samples each. Pixel-nearest neighbors are compared against a real-test-image baseline. Full-data 55.7M-parameter training is encouraged in the assignment but is outside the default deadline run.
 
+The CIFAR sweep caches the real class-reference moments and saves metrics after each completed guidance weight. If interrupted, restart the same command to reuse those results. The runner serializes identical tasks writing to the same output directory. `--stop-after 4000` can end an initial training stage while retaining the full 20,000-update snapshot schedule; restarting without that flag continues the same experiment.
+
 MNIST uses the lab U-Net (64 base channels), the lab cosine path, uniformly sampled times, and clean-image MSE. This loss is our explicit training choice because the supplied notebook has no trainer. Training uses all 60,000 digits, label dropout 0.1 (label 10 means no request), Adam at 2e-4, batch 128, gradient clipping at norm 1, and EMA. The default is 10,000 updates; actual updates are recorded in metrics. Evaluation uses 1,000 balanced requests at `w = 0, 1, 2, 4`, paired initial noise, and 32 deterministic DDIM steps. The real reference is all 10,000 held-out MNIST test digits. **MNIST FID uses the lab classifier's 128 features, not Inception features**, so its scale is separate from CIFAR FID.
 
 ## Resuming and changing the time budget
@@ -91,6 +93,24 @@ pdflatex -interaction=nonstopmode -halt-on-error main.tex
 Review `report/main.pdf`, add evidence-based interpretations to `notes.md` and `report/main.tex`, and rebuild. In particular, answer the three trajectory questions, choose a guidance weight with justification, discuss nearest-neighbor evidence, and describe the MNIST tradeoff. Each figure needs a sentence about the observed result. The optional full-data training run has not been claimed or scheduled.
 
 If DSMLP lacks LaTeX, download the `artifacts/` folder to this local project or compile with the provided source in Overleaf. To share results for review, return the JSON/CSV files, PNG figures, and logs; large model checkpoints are not needed to write the report.
+
+## Local fallback and optional full-network preparation
+
+On this Mac, the remaining required CIFAR experiments can run without a DSMLP connection:
+
+```bash
+caffeinate -i bash scripts/run_local_cifar.sh
+```
+
+This queues the 1,000-image guidance sweep and both 20,000-update training runs on MPS. Keep the laptop open: `caffeinate -i` prevents idle sleep, but closing the lid can still suspend work. Logs are `logs/local_cifar_sweep.log`, `logs/local_cifar_train100.log`, and `logs/local_cifar_train1000.log`. The local fallback may be substantially slower than a DSMLP NVIDIA GPU.
+
+To prepare the encouraged full-data experiment after the lab downloads exist:
+
+```bash
+python -m checkpoint.prepare_full_edm
+```
+
+This exports and verifies 50,000 PNGs and class labels in `data/edm/cifar10-32x32-n50000.zip`, then writes `data/edm/train_full_edm.sh`. It **does not launch training**. Run the preparation command on DSMLP to generate paths for that machine, then use the generated launch script only if required experiments are secured and time remains. The script preserves effective batch size 512 using per-GPU batch 16 and gradient accumulation. Loss and snapshot FID can be evaluated with the final cells of the supplied CIFAR notebook.
 
 ## Local verification
 

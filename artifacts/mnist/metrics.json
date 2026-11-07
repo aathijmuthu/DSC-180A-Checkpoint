@@ -3,31 +3,31 @@
   "n_reference": 10000,
   "reference": "MNIST test split",
   "feature_space": "frozen lab digit classifier, 128 features",
-  "training_updates": 6500,
+  "training_updates": 10000,
   "results": {
     "0": {
-      "accuracy": 0.10199999809265137,
-      "fid": 135.2957265809746,
+      "accuracy": 0.10400000214576721,
+      "fid": 106.39591963042585,
       "nfe": 32,
-      "pixel_spread": 0.25238987505435945
+      "pixel_spread": 0.25354233384132385
     },
     "1": {
-      "accuracy": 0.9570000171661377,
-      "fid": 24.214805300464832,
+      "accuracy": 0.9639999866485596,
+      "fid": 22.098997919688372,
       "nfe": 32,
-      "pixel_spread": 0.19675363525748252
+      "pixel_spread": 0.19643341600894929
     },
     "2": {
-      "accuracy": 0.9990000128746033,
-      "fid": 93.99137268551658,
+      "accuracy": 1.0,
+      "fid": 85.1388015179582,
       "nfe": 64,
-      "pixel_spread": 0.17804188579320906
+      "pixel_spread": 0.17918205708265306
     },
     "4": {
       "accuracy": 1.0,
-      "fid": 210.65541844169184,
+      "fid": 182.56548855353867,
       "nfe": 64,
-      "pixel_spread": 0.17043377608060836
+      "pixel_spread": 0.17318570539355277
     }
   }
 }

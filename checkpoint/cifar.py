@@ -3,6 +3,7 @@ import argparse
 import ast
 import copy
 import csv
+import fcntl
 import json
 import os
 import time
@@ -85,15 +86,55 @@ class Lab:
             save_torch(self.out / f'trajectory_w{w}.pt', history)
 
     def sweep(self):
-        protocol = dict(batch=self.args.batch, n_eval=self.args.n_eval, steps=18, seed_base=1000)
+        import torch
+        import hashlib
+        ns = self.ns
+        protocol = dict(batch=self.args.batch, n_eval=self.args.n_eval, steps=18, seed_base=1000,
+                        notebook_sha256=hashlib.sha256(NOTEBOOK.read_bytes()).hexdigest())
         path = self.out / 'sweep_protocol.json'
         if path.exists() and json.loads(path.read_text()) != protocol:
             raise ValueError('Sampling configuration changed; use a different --out directory to avoid stale cached images')
         save_json(path, protocol)
-        self.cell(26, 'sweep')
+        self.cell(26, only_definitions=True)
+        # Reference moments are expensive to compute. Reuse the exact double-
+        # precision moments on reruns, and persist each completed guidance weight.
+        ref_path = self.out / 'class_reference.pt'
+        if ref_path.exists():
+            ns['CLASS_REF'] = torch.load(ref_path, weights_only=True)['moments']
+            print('Reusing saved CIFAR class-reference moments', flush=True)
+        else:
+            print('Extracting Inception features of all 50,000 real training images for class FID', flush=True)
+            chunks = []
+            for start in range(0, len(ns['train_images']), 4096):
+                chunks.append(ns['features'](ns['train_images'][start:start + 4096]))
+                print(f'Reference features: {min(start + 4096, len(ns["train_images"]))}/{len(ns["train_images"])}', flush=True)
+            real_features = torch.cat(chunks)
+            del chunks
+            ns['CLASS_REF'] = [ns['gaussian'](real_features[ns['train_labels'] == c]) for c in range(10)]
+            save_torch(ref_path, dict(moments=ns['CLASS_REF'], n_reference=50000))
+            del real_features
+            print('Saved CIFAR class-reference moments', flush=True)
+        result_path = self.out / f'cfg_sweep_n{self.args.n_eval}.json'
+        results = {}
+        if result_path.exists():
+            results = {float(w): row for w, row in json.loads(result_path.read_text())['results'].items()}
+        for w in ns['W']:
+            if w in results:
+                print(f'Reusing completed metrics for w={w:g}', flush=True)
+                continue
+            images, labels = ns['generate'](w)
+            predicted, feats = ns['classify'](images), ns['features'](images)
+            results[w] = dict(accuracy=float((predicted == labels).float().mean()),
+                              fid=ns['frechet'](*ns['gaussian'](feats), ns['MU_REF'], ns['SIGMA_REF']),
+                              fid_class=ns['fid_class'](feats, labels) if w > 0 else None)
+            save_json(result_path, dict(n_images=self.args.n_eval, complete=len(results) == len(ns['W']),
+                      results={f'{key:g}': value for key, value in results.items()}))
+            print(f'CIFAR w={w:g}: {results[w]}', flush=True)
+        images, _ = ns['generate'](0)
+        ns.update(results=results, histogram=torch.bincount(ns['classify'](images), minlength=10))
         self.cell(27, 'cfg_metrics')
         with open(self.out / 'cfg_sweep.csv', 'w', newline='') as f:
-            writer = csv.DictWriter(f, fieldnames=['w', 'accuracy', 'fid', 'fid_class'])
+            writer = csv.DictWriter(f, fieldnames=['w', 'accuracy', 'fid', 'fid_class'], lineterminator='\n')
             writer.writeheader()
             writer.writerows(dict(w=w, **row) for w, row in self.ns['results'].items())
 
@@ -133,8 +174,11 @@ class Lab:
                       images_seen=step * args.train_batch, n_eval=args.n_eval, losses=losses, fids=fids))
 
         interval = max(1, args.updates // 5)
-        started = time.time()
-        for step in range(start + 1, args.updates + 1):
+        started = time.monotonic()
+        end = min(args.updates, args.stop_after or args.updates)
+        if end < start:
+            raise ValueError('--stop-after is earlier than the saved checkpoint')
+        for step in range(start + 1, end + 1):
             indices = torch.randint(len(clean), (args.train_batch,))
             y = torch.nn.functional.one_hot(labels[indices], 10).float().to(args.device_object)
             loss = objective(net, clean[indices].to(args.device_object), y).mean()
@@ -147,10 +191,11 @@ class Lab:
                     average.lerp_(current, 1 - (0.9 if step <= 1000 else 0.999))
             losses.append(float(loss.detach()))
             if step == start + 20 or step % 100 == 0:
-                rate = (time.time() - started) / (step - start)
+                rate = (time.monotonic() - started) / (step - start)
                 print(f'CIFAR subset {size}, update {step}/{args.updates}, loss {np.mean(losses[-100:]):.3f}, '
-                      f'{rate:.2f} s/update, remaining incl. elapsed evaluation ~{rate*(args.updates-step)/60:.1f} min', flush=True)
-            if step % args.save_every == 0:
+                      f'{rate:.2f} s/update, remaining to stage update {end} '
+                      f'incl. elapsed evaluation ~{rate*(end-step)/60:.1f} min', flush=True)
+            if step % args.save_every == 0 or step == end:
                 persist(step)
             if step % interval == 0 or step == args.updates:
                 save_torch(self.out / f'subset{size}_update{step}.pt', ema.state_dict())
@@ -184,11 +229,19 @@ def main():
     parser.add_argument('--n-eval', type=int, default=1000)
     parser.add_argument('--updates', type=int, default=20000)
     parser.add_argument('--save-every', type=int, default=500)
+    parser.add_argument('--stop-after', type=int, help='stop at this update while retaining the full snapshot schedule for resume')
     args = parser.parse_args()
+    if args.stop_after is not None and args.stop_after < 1:
+        parser.error('--stop-after must be positive')
     if min(args.batch, args.train_batch, args.updates, args.save_every) < 1 or args.n_eval < 20 or args.n_eval % 10:
         parser.error('Counts must be positive; n-eval must be a multiple of ten and at least twenty')
     import matplotlib
     matplotlib.use('Agg')
+    Path(args.out).mkdir(parents=True, exist_ok=True)
+    # A queued continuation may reach a task while an earlier pilot is still
+    # running. Serialize writers for that task before loading GPU resources.
+    task_lock = open(Path(args.out) / f'.{args.task}.lock', 'a')
+    fcntl.flock(task_lock, fcntl.LOCK_EX)
     args.device_object = setup(args.device)
     os.environ['LAB_DEVICE'] = str(args.device_object)
     os.chdir(ROOT)

@@ -18,6 +18,9 @@ def main():
     mnist = ROOT / 'artifacts/mnist/metrics.json'
     if cifar.exists():
         data = json.loads(cifar.read_text())
+        if data.get('complete') is False:
+            lines += ['\\paragraph{Sweep status.} This is a partial sweep; remaining guidance weights are still running.']
+            md += ['CIFAR-10 guidance sweep is partially complete.', '']
         rows = [[w, f'{r["accuracy"]:.3f}', f'{r["fid"]:.2f}',
                  '--' if r['fid_class'] is None else f'{r["fid_class"]:.2f}'] for w, r in data['results'].items()]
         lines += ['\\subsection{Pretrained CIFAR-10 guidance}',

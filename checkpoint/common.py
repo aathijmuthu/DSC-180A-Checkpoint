@@ -9,6 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+os.environ.setdefault('PYTORCH_ENABLE_MPS_FALLBACK', '1')
 
 
 def cell_source(path, index):

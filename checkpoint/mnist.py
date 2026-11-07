@@ -54,7 +54,7 @@ def train(args, mg, device):
         restore_rng(state['rng'])
         print(f'Resuming MNIST at update {start}', flush=True)
     net.train()
-    started = time.time()
+    started = time.monotonic()
 
     def persist(step):
         save_torch(latest, dict(net=net.state_dict(), ema=ema.state_dict(), optimizer=opt.state_dict(),
@@ -78,7 +78,7 @@ def train(args, mg, device):
                     average.lerp_(current, 1 - decay)
             losses.append(float(loss.detach()))
             if step == start + 20 or step % 100 == 0:
-                seconds = (time.time() - started) / (step - start)
+                seconds = (time.monotonic() - started) / (step - start)
                 print(f'MNIST update {step}/{args.updates}, loss {sum(losses[-100:])/len(losses[-100:]):.4f}, '
                       f'{seconds:.2f} s/update, remaining training {(args.updates-step)*seconds/60:.1f} min', flush=True)
             if step % args.save_every == 0 or step == args.updates:
@@ -154,7 +154,7 @@ def evaluate(args, mg, net, device):
     fig.savefig(out / 'cfg_metrics.png', dpi=180)
     plt.close(fig)
     with open(out / 'metrics.csv', 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=['w', 'accuracy', 'fid', 'nfe', 'pixel_spread'])
+        writer = csv.DictWriter(f, fieldnames=['w', 'accuracy', 'fid', 'nfe', 'pixel_spread'], lineterminator='\n')
         writer.writeheader()
         writer.writerows(dict(w=w, **row) for w, row in results.items())
 
