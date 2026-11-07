@@ -221,7 +221,7 @@ class Lab:
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('task', choices=['figures', 'sweep', 'train100', 'train1000'])
+    parser.add_argument('task', choices=['prepare', 'figures', 'sweep', 'train100', 'train1000'])
     parser.add_argument('--out', default='artifacts/cifar')
     parser.add_argument('--device', default='auto')
     parser.add_argument('--batch', type=int, default=32, help='sampling/evaluation batch; keep fixed across paired runs')
@@ -248,7 +248,9 @@ def main():
     lab = Lab(args)
     lab.prepare()
     # Training from the lab and sampling use float32, as in the supplied notebook.
-    if args.task == 'figures': lab.figures()
+    if args.task == 'prepare':
+        print('CIFAR downloads, data, pretrained models, and evaluators are ready', flush=True)
+    elif args.task == 'figures': lab.figures()
     elif args.task == 'sweep': lab.sweep()
     else: lab.train(100 if args.task == 'train100' else 1000)
 

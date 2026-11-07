@@ -12,6 +12,9 @@ export PYTHON="$PWD/.venv-dsmlp/bin/python"
 "$PYTHON" -m pip freeze > artifacts/environment-dsmlp.txt
 "$PYTHON" -c 'import torch; assert torch.cuda.is_available(); print("CUDA GPUs:", torch.cuda.device_count()); print([torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())])'
 "$PYTHON" -m unittest discover -s tests -v
+# Prepare shared downloads once before workers run, avoiding simultaneous writes
+# to the lab downloader's partial files on a fresh cluster checkout.
+"$PYTHON" -m checkpoint.cifar prepare 2>&1 | tee logs/dsmlp_assets.log
 if ! "$PYTHON" -c 'import torch; assert torch.cuda.device_count() >= 2'; then
   exec bash scripts/run_dsmlp.sh cifar
 fi
