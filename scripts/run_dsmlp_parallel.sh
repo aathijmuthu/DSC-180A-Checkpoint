@@ -15,7 +15,8 @@ export PYTHON="$PWD/.venv-dsmlp/bin/python"
 # Prepare shared downloads once before workers run, avoiding simultaneous writes
 # to the lab downloader's partial files on a fresh cluster checkout.
 "$PYTHON" -m checkpoint.cifar prepare 2>&1 | tee logs/dsmlp_assets.log
-if ! "$PYTHON" -c 'import torch; assert torch.cuda.device_count() >= 2'; then
+if ! "$PYTHON" -c 'import sys, torch; sys.exit(torch.cuda.device_count() < 2)'; then
+  echo 'One GPU allocated; running CIFAR experiments sequentially.'
   exec bash scripts/run_dsmlp.sh cifar
 fi
 run() {

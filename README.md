@@ -56,6 +56,8 @@ CIFAR pretrained evaluation uses 1,000 images at each `w = 0, 1, 1.5, 2, 3, 4`, 
 
 All-class FID uses NVIDIA's 50,000-image training reference. FID_class averages ten requested-class comparisons, each with 100 generated images and 5,000 real training images. At w=0, requests are ignored and class FID is omitted. Classifier accuracy is also measured on real CIFAR test images. These small-sample FIDs are not direct replications of EDM's published 50,000-sample values.
 
+Inception feature extraction now follows the selected CPU, CUDA, or MPS device; `--fid-device cpu` can override it. Features move to CPU before conversion to float64, so covariance and FID calculations retain the notebook's precision. A local CPU/MPS check on identical inputs agreed to approximately 1.1e-6 relative RMS error. This avoids the unsupported MPS float64 conversion and substantially speeds up local reference-feature extraction.
+
 Small CIFAR training follows the notebook: balanced subsets of 100 and 1,000 images; 7M-parameter SongUNet with EDM preconditioning and EDMLoss; label dropout 0.1; Adam at 2e-4; batch 64; EMA; 20,000 updates per subset; five snapshot evaluations of 1,000 unconditional samples each. Pixel-nearest neighbors are compared against a real-test-image baseline. Full-data 55.7M-parameter training is encouraged in the assignment but is outside the default deadline run.
 
 The CIFAR sweep caches the real class-reference moments and saves metrics after each completed guidance weight. If interrupted, restart the same command to reuse those results. The runner serializes identical tasks writing to the same output directory. `--stop-after 4000` can end an initial training stage while retaining the full 20,000-update snapshot schedule; restarting without that flag continues the same experiment.
@@ -95,6 +97,8 @@ Review `report/main.pdf`, add evidence-based interpretations to `notes.md` and `
 If DSMLP lacks LaTeX, download the `artifacts/` folder to this local project or compile with the provided source in Overleaf. To share results for review, return the JSON/CSV files, PNG figures, and logs; large model checkpoints are not needed to write the report.
 
 ## Local fallback and optional full-network preparation
+
+An additional GPU fallback is available in [the Colab runner](https://colab.research.google.com/github/aathijmuthu/DSC-180A-Checkpoint/blob/main/colab_checkpoint.ipynb). Select an available GPU runtime, then run all cells. The notebook runs all remaining required CIFAR work and exports a results ZIP. It uses the same code, sample counts, and training configuration. Return the ZIP to the local project for final report compilation. [Colab's GPU resources depend on availability](https://research.google.com/colaboratory/faq.html).
 
 On this Mac, the remaining required CIFAR experiments can run without a DSMLP connection:
 

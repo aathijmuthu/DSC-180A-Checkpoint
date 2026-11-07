@@ -45,6 +45,9 @@ class Lab:
         source = source.replace('images[i:i + 500]', 'images[i:i + BATCH]')
         source = source.replace('range(0, n, 500)', 'range(0, n, BATCH)').replace('labels[b:b + 500]', 'labels[b:b + BATCH]')
         source = source.replace('images[i:i + 100]', 'images[i:i + BATCH]').replace('range(0, len(images), 100)', 'range(0, len(images), BATCH)')
+        # MPS does not support float64 tensors. Transfer the float32 detector
+        # output to CPU before the exact conversion used for FID statistics.
+        source = source.replace('.double().cpu()', '.cpu().double()')
         code = definitions(source) if only_definitions else compile(source, f'{NOTEBOOK.name}:cell{index}', 'exec')
         exec(code, self.ns)
 
@@ -65,8 +68,15 @@ class Lab:
         self.ns['W'] = [0, 1, 1.5, 2, 3, 4]
         self.cell(19)
         self.cell(21)
+        import torch
+        fid_device = self.args.device_object if self.args.fid_device == 'auto' else torch.device(self.args.fid_device)
+        self.ns['detector'] = self.ns['detector'].to(fid_device)
+        self.ns['FID_DEVICE'] = fid_device
+        print(f'Inception feature device: {fid_device}; Gaussian statistics remain float64 on CPU', flush=True)
         self.ns['OUT'] = self.out
-        save_json(self.out / f'manifest_{self.args.task}.json', manifest(self.args_for_manifest(), self.args.device_object))
+        metadata = manifest(self.args_for_manifest(), self.args.device_object)
+        metadata['fid_device'] = str(fid_device)
+        save_json(self.out / f'manifest_{self.args.task}.json', metadata)
 
     def args_for_manifest(self):
         import argparse
@@ -90,10 +100,14 @@ class Lab:
         import hashlib
         ns = self.ns
         protocol = dict(batch=self.args.batch, n_eval=self.args.n_eval, steps=18, seed_base=1000,
-                        notebook_sha256=hashlib.sha256(NOTEBOOK.read_bytes()).hexdigest())
+                        notebook_sha256=hashlib.sha256(NOTEBOOK.read_bytes()).hexdigest(),
+                        fid_device=str(ns.get('FID_DEVICE', 'cpu')))
         path = self.out / 'sweep_protocol.json'
         if path.exists() and json.loads(path.read_text()) != protocol:
-            raise ValueError('Sampling configuration changed; use a different --out directory to avoid stale cached images')
+            cached = (any(self.out.glob('cfg_w*_n*.npz')) or any(self.out.glob('cfg_sweep_n*.json'))
+                      or (self.out / 'class_reference.pt').exists())
+            if cached:
+                raise ValueError('Sampling configuration changed; use a different --out directory to avoid stale cached results')
         save_json(path, protocol)
         self.cell(26, only_definitions=True)
         # Reference moments are expensive to compute. Reuse the exact double-
@@ -224,6 +238,8 @@ def main():
     parser.add_argument('task', choices=['prepare', 'figures', 'sweep', 'train100', 'train1000'])
     parser.add_argument('--out', default='artifacts/cifar')
     parser.add_argument('--device', default='auto')
+    parser.add_argument('--fid-device', choices=['auto', 'cpu', 'cuda', 'mps'], default='auto',
+                        help='Inception device; auto follows the sampling device, statistics always use CPU float64')
     parser.add_argument('--batch', type=int, default=32, help='sampling/evaluation batch; keep fixed across paired runs')
     parser.add_argument('--train-batch', type=int, default=64)
     parser.add_argument('--n-eval', type=int, default=1000)
