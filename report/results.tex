@@ -37,20 +37,29 @@ Update & FID \\
 
 Median nearest-training-image pixel distance: generated 1.19; real test images 23.67. The comparison uses 100 images per group.
 
-Generated samples are closer to the training set than real test images by this metric, a pattern consistent with memorization. The image pairs show how closely individual samples match.
+Generated samples are closer to the training set than real test images by this metric, but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.
 
 \subsection{CIFAR-10 training: 1000 images}
 
-The saved run reached 3,000 updates; snapshot FID uses 1000 generated images.
+The saved run reached 20,000 updates; snapshot FID uses 1000 generated images.
 
 \begin{center}
 \begin{tabular}{rr}
 \hline
 Update & FID \\
 \hline
+4000 & 92.00 \\
+8000 & 111.34 \\
+12000 & 121.21 \\
+16000 & 129.61 \\
+20000 & 132.47 \\
 \hline
 \end{tabular}
 \end{center}
+
+Median nearest-training-image pixel distance: generated 13.86; real test images 21.25. The comparison uses 100 images per group.
+
+Generated samples are closer to the training set than real test images by this metric, but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.
 
 \subsection{MNIST guidance}
 

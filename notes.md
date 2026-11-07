@@ -10,6 +10,8 @@
 
 ## Required observations after GPU runs
 
+The entries below were recorded as work progressed; earlier active/queued statuses are historical. All required experiments are now complete. Final reported CIFAR results use DSMLP outputs.
+
 - CIFAR trajectories (cat, seed 2): at what sigma is the class first visible for w=1 and w=4? From which sigma does each image barely change? How do the estimates differ at low noise?
 - Which CIFAR guidance weight would you choose, using accuracy, FID, FID_class, and visual inspection? Record ambiguities and artifacts.
 - For each training subset: describe FID versus update and sample/test nearest-neighbor distances. Pixel proximity is evidence of similarity, not proof of exact copying.
@@ -34,6 +36,8 @@
 - DSMLP subsequently acquired a GPU and completed the full guidance sweep and the 20,000-update 100-image run. The remaining 1,000-image run is active on CUDA. Duplicate local jobs were stopped and preserved under `artifacts/local_mps_archive_20261106_1810/`; current report files use the DSMLP outputs. The 100-image run resumed the transferred local 1,500-update checkpoint. The GPU 1,000-image run began from scratch before its local checkpoint transfer finished, so the incoming file was kept separate rather than replacing an active checkpoint.
 - Completed CUDA sweep, w=0,1,1.5,2,3,4: accuracy 11.0%, 95.8%, 98.6%, 99.5%, 99.1%, 99.0%; all-class FID 30.97, 30.93, 30.96, 32.22, 35.59, 38.22. Class FID for w>0: 111.40, 107.16, 107.87, 112.81, 116.79. We favor w=1.5 for this measured tradeoff, or w=2 for the highest measured class accuracy; larger weights offer no benefit in these measurements.
 - Completed CUDA 100-image run: FID at updates 4k,8k,12k,16k,20k is 73.04, 88.55, 98.54, 105.63, 106.83. The 200-update mean loss before the first and last snapshots is 0.0367 and 0.0179. Generated/test median nearest-training-image distances are 1.19/23.67. This shows why decreasing loss on a tiny training set is not evidence of generalization to the full data distribution.
+- Completed CUDA 1,000-image run: all 20,000 updates and five snapshots finished. FID at updates 4k,8k,12k,16k,20k is 92.00, 111.34, 121.21, 129.61, 132.47. The corresponding first/last 200-update mean losses are 0.1788/0.0694. Generated/test median nearest-training-image distances are 13.86/21.25. Several pairs share coarse layout or background, but many generated images are blurry partial matches. The evidence for exact copying is weaker than for the 100-image network; lower pixel distances can also arise from blurred averages. These runs do not establish that more training data is harmful, since optimization and capacity are held to the same limited budget.
+- Final trained-model CFG grids evaluate 100 samples per weight. At w=0,1,2,4, requested-class accuracies are 7%,96%,100%,100% for 100 training images and 10%,47%,74%,84% for 1,000 training images. Guidance improves class matching, but several 1,000-image-model outputs remain ambiguous or blurry even at w=4. These grid scores are separate from the 1,000-sample pretrained sweep.
 - Local numerical checks passed for FID identity/translation/symmetry, null-guidance independence from the request, null-label embedding gradients under dropout, the constant-denoiser sampler, checkpoint/optimizer/RNG restoration, and figure saving. A two-update MNIST run and a one-update resume also completed. Those generated outputs are smoke checks, not reported assignment results.
 
 ## Protocol decisions

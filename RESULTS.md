@@ -22,10 +22,18 @@
 
 Median nearest-training-image distance: generated 1.19; real test 23.67.
 
-## CIFAR subset 1000: 3000 updates
+## CIFAR subset 1000: 20000 updates
 
 | Update | FID |
 |---|---|
+| 4000 | 92.00 |
+| 8000 | 111.34 |
+| 12000 | 121.21 |
+| 16000 | 129.61 |
+| 20000 | 132.47 |
+
+Median nearest-training-image distance: generated 13.86; real test 21.25.
+
 ## MNIST guidance
 
 | w | Accuracy | Classifier-feature FID |

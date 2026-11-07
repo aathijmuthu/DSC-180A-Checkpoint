@@ -2,6 +2,8 @@
 
 Individual project by Aathi Muthu, based on Karras et al., [Elucidating the Design Space of Diffusion-Based Generative Models](https://arxiv.org/abs/2206.00364) (NeurIPS 2022), [NVlabs/edm](https://github.com/NVlabs/edm), and the supplied D32 labs.
 
+**All required experiments completed on November 6, 2026.** Read the [report PDF](report/main.pdf), [numerical results](RESULTS.md), and [observations](notes.md). Both restricted-data CIFAR models reached 20,000 updates with five evaluated snapshots; the six-weight pretrained CIFAR sweep and the 10,000-update MNIST experiment also finished. The optional full-size EDM training run was prepared but not run. Figures, metrics, environment records, and report sources are included; large checkpoints remain outside Git.
+
 ## Start on DSMLP
 
 Open a terminal **inside your GPU-enabled DSMLP session**. Clone this repository (or upload the project folder), then run:
@@ -41,7 +43,7 @@ Run from the repository root. No notebook execution is required; the runners rea
 | `python -m checkpoint.mnist --evaluate-only` | Re-evaluate the saved MNIST EMA without further training |
 | `python -m checkpoint.summarize` | `RESULTS.md` and `report/results.tex`, populated only from available metrics |
 
-Figures also enter the report automatically when their files exist. Interpretation questions and predictions are in [notes.md](notes.md). [RESULTS.md](RESULTS.md) records the results currently available. **A successful local smoke check is not a completed assignment experiment.**
+Figures also enter the report automatically when their files exist. Interpretation questions, predictions, and observed answers are in [notes.md](notes.md). [RESULTS.md](RESULTS.md) records the completed experiments.
 
 ## Data and model downloads
 
@@ -83,7 +85,7 @@ Shorter runs must be described as partial training; they do not silently replace
 
 ## Build the report
 
-The LaTeX draft contains the title, abstract, introduction (problem, related work, data), experimental protocol, and preliminary-results slots. Missing experiments are explicitly marked as pending. **Do not submit the draft as if those experiments were completed.** After running experiments:
+The report contains the title, abstract, introduction (problem, related work, data), experimental protocol, completed results, all required figures, and reproducibility notes. Rebuild it from the saved metrics with:
 
 ```bash
 python -m checkpoint.summarize
@@ -92,7 +94,7 @@ pdflatex -interaction=nonstopmode -halt-on-error main.tex
 pdflatex -interaction=nonstopmode -halt-on-error main.tex
 ```
 
-Review `report/main.pdf`, add evidence-based interpretations to `notes.md` and `report/main.tex`, and rebuild. In particular, answer the three trajectory questions, choose a guidance weight with justification, discuss nearest-neighbor evidence, and describe the MNIST tradeoff. Each figure needs a sentence about the observed result. The optional full-data training run has not been claimed or scheduled.
+Review `report/main.pdf` before submission. The report answers the trajectory questions, justifies guidance choices, discusses nearest-neighbor evidence, and describes the MNIST tradeoff. The optional full-data training run has not been claimed or scheduled. For a fresh reproduction, use a new `--out` directory so the included metrics are preserved and hardware-dependent cached sweep settings do not conflict.
 
 If DSMLP lacks LaTeX, download the `artifacts/` folder to this local project or compile with the provided source in Overleaf. To share results for review, return the JSON/CSV files, PNG figures, and logs; large model checkpoints are not needed to write the report.
 
@@ -100,7 +102,7 @@ If DSMLP lacks LaTeX, download the `artifacts/` folder to this local project or 
 
 An additional GPU fallback is available in [the Colab runner](https://colab.research.google.com/github/aathijmuthu/DSC-180A-Checkpoint/blob/main/colab_checkpoint.ipynb). Select an available GPU runtime, then run all cells. The notebook runs all remaining required CIFAR work and exports a results ZIP. It uses the same code, sample counts, and training configuration. Return the ZIP to the local project for final report compilation. [Colab's GPU resources depend on availability](https://research.google.com/colaboratory/faq.html).
 
-On this Mac, the remaining required CIFAR experiments can run without a DSMLP connection:
+On this Mac, the required CIFAR experiments can also run without a DSMLP connection:
 
 ```bash
 caffeinate -i bash scripts/run_local_cifar.sh

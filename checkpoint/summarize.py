@@ -49,7 +49,7 @@ def main():
                           f'{distances["median_test_distance"]:.2f}. The comparison uses 100 images per group.']
                 if distances['median_generated_distance'] < distances['median_test_distance']:
                     lines += ['Generated samples are closer to the training set than real test images by this metric, '
-                              'a pattern consistent with memorization. The image pairs show how closely individual samples match.']
+                              'but the image pairs are needed to distinguish close copies from blurred averages or other low-diversity outputs.']
                 md += ['', f'Median nearest-training-image distance: generated '
                        f'{distances["median_generated_distance"]:.2f}; real test '
                        f'{distances["median_test_distance"]:.2f}.', '']
