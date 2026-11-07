@@ -12,6 +12,7 @@ artifacts/**/*.pt
 artifacts/**/*.npz
 artifacts/**/*.npy
 artifacts/smoke*/
+artifacts/local_mps_archive*/
 artifacts/**/.*.lock
 report/*.aux
 report/*.log

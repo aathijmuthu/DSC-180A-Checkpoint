@@ -1,15 +1,31 @@
 # Observed experiment results
 
-CIFAR-10 guidance sweep: pending.
+## CIFAR-10 guidance
 
-## CIFAR subset 100: 4000 updates
+| w | Accuracy | FID | FID_class |
+|---|---|---|---|
+| 0 | 0.110 | 30.97 | -- |
+| 1 | 0.958 | 30.93 | 111.40 |
+| 1.5 | 0.986 | 30.96 | 107.16 |
+| 2 | 0.995 | 32.22 | 107.87 |
+| 3 | 0.991 | 35.59 | 112.81 |
+| 4 | 0.990 | 38.22 | 116.79 |
+## CIFAR subset 100: 20000 updates
 
 | Update | FID |
 |---|---|
-| 4000 | 74.13 |
+| 4000 | 73.04 |
+| 8000 | 88.55 |
+| 12000 | 98.54 |
+| 16000 | 105.63 |
+| 20000 | 106.83 |
 
-Median nearest-training-image distance: generated 5.75; real test 23.67.
+Median nearest-training-image distance: generated 1.19; real test 23.67.
 
+## CIFAR subset 1000: 3000 updates
+
+| Update | FID |
+|---|---|
 ## MNIST guidance
 
 | w | Accuracy | Classifier-feature FID |

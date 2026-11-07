@@ -1,24 +1,56 @@
-\paragraph{CIFAR-10 guidance.} The required 1,000-image sweep has not yet been imported.
+\subsection{Pretrained CIFAR-10 guidance}
+
+Table: 1000 generated images per setting, balanced requests. Class FID uses 100 generated images per class and is omitted for $w=0$.
+
+\begin{center}
+\begin{tabular}{rrrr}
+\hline
+$w$ & Accuracy & FID & Class FID \\
+\hline
+0 & 0.110 & 30.97 & -- \\
+1 & 0.958 & 30.93 & 111.40 \\
+1.5 & 0.986 & 30.96 & 107.16 \\
+2 & 0.995 & 32.22 & 107.87 \\
+3 & 0.991 & 35.59 & 112.81 \\
+4 & 0.990 & 38.22 & 116.79 \\
+\hline
+\end{tabular}
+\end{center}
 
 \subsection{CIFAR-10 training: 100 images}
 
-The saved run reached 4,000 updates; snapshot FID uses 1000 generated images.
+The saved run reached 20,000 updates; snapshot FID uses 1000 generated images.
 
 \begin{center}
 \begin{tabular}{rr}
 \hline
 Update & FID \\
 \hline
-4000 & 74.13 \\
+4000 & 73.04 \\
+8000 & 88.55 \\
+12000 & 98.54 \\
+16000 & 105.63 \\
+20000 & 106.83 \\
 \hline
 \end{tabular}
 \end{center}
 
-Median nearest-training-image pixel distance: generated 5.75; real test images 23.67. The comparison uses 100 images per group.
+Median nearest-training-image pixel distance: generated 1.19; real test images 23.67. The comparison uses 100 images per group.
 
 Generated samples are closer to the training set than real test images by this metric, a pattern consistent with memorization. The image pairs show how closely individual samples match.
 
-\paragraph{CIFAR-10 training: 1000 images.} Results have not yet been imported.
+\subsection{CIFAR-10 training: 1000 images}
+
+The saved run reached 3,000 updates; snapshot FID uses 1000 generated images.
+
+\begin{center}
+\begin{tabular}{rr}
+\hline
+Update & FID \\
+\hline
+\hline
+\end{tabular}
+\end{center}
 
 \subsection{MNIST guidance}
 

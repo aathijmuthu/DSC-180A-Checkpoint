@@ -2,22 +2,23 @@
   "arguments": {
     "task": "sweep",
     "out": "artifacts/cifar",
-    "device": "mps",
+    "device": "auto",
     "batch": 32,
     "train_batch": 64,
     "n_eval": 1000,
     "updates": 20000,
-    "save_every": 500
+    "save_every": 500,
+    "stop_after": null
   },
-  "device": "mps",
-  "gpu": null,
-  "torch": "2.15.0",
-  "python": "3.12.15 (main, Sep 30 2026, 22:04:19) [Clang 21.0.0 (clang-2100.3.34.2)]",
-  "platform": "macOS-26.6-arm64-arm-64bit",
-  "git_commit": "e21a51840c304207f1682750ddab9df97eae626a",
+  "device": "cuda",
+  "gpu": "NVIDIA GeForce GTX 1080 Ti",
+  "torch": "2.2.1+cu121",
+  "python": "3.11.9 | packaged by conda-forge | (main, Apr 19 2024, 18:36:13) [GCC 12.3.0]",
+  "platform": "Linux-6.1.0-51-amd64-x86_64-with-glibc2.35",
+  "git_commit": "8cd4e5d5ec3ec0d32f8fa9c11c7e558c05db92d0",
   "notebook_sha256": {
-    "dsc180-d32-mnist-guidance-lab/part2_mnist.ipynb": "e415d1991f21e15f57573d2e85c355a9d3abfe3fdd6252202a7bda69dc2d3e2d",
+    "dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb": "a3604a1438a06df87c271d7463cf6d823e2cc04dbd680c08094d91cd39acea1a",
     "dsc180-d32-mnist-guidance-lab/guidance_mnist.ipynb": "4028b5353d7b8a820e31d184c3eae677f79a4944b612a9f637117e56f3771f14",
-    "dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb": "a3604a1438a06df87c271d7463cf6d823e2cc04dbd680c08094d91cd39acea1a"
+    "dsc180-d32-mnist-guidance-lab/part2_mnist.ipynb": "e415d1991f21e15f57573d2e85c355a9d3abfe3fdd6252202a7bda69dc2d3e2d"
   }
 }
