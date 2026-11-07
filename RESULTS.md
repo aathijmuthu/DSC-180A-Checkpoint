@@ -2,6 +2,14 @@
 
 CIFAR-10 guidance sweep: pending.
 
+## CIFAR subset 100: 4000 updates
+
+| Update | FID |
+|---|---|
+| 4000 | 74.13 |
+
+Median nearest-training-image distance: generated 5.75; real test 23.67.
+
 ## MNIST guidance
 
 | w | Accuracy | Classifier-feature FID |

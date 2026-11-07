@@ -1,6 +1,22 @@
 \paragraph{CIFAR-10 guidance.} The required 1,000-image sweep has not yet been imported.
 
-\paragraph{CIFAR-10 training: 100 images.} Results have not yet been imported.
+\subsection{CIFAR-10 training: 100 images}
+
+The saved run reached 4,000 updates; snapshot FID uses 1000 generated images.
+
+\begin{center}
+\begin{tabular}{rr}
+\hline
+Update & FID \\
+\hline
+4000 & 74.13 \\
+\hline
+\end{tabular}
+\end{center}
+
+Median nearest-training-image pixel distance: generated 5.75; real test images 23.67. The comparison uses 100 images per group.
+
+Generated samples are closer to the training set than real test images by this metric, a pattern consistent with memorization. The image pairs show how closely individual samples match.
 
 \paragraph{CIFAR-10 training: 1000 images.} Results have not yet been imported.
 

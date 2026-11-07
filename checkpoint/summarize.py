@@ -39,13 +39,20 @@ def main():
             lines += [f'\\subsection{{CIFAR-10 training: {size} images}}',
                       f'The saved run reached {data["updates"]:,} updates; snapshot FID uses {data["n_eval"]} generated images.',
                       table(['Update', 'FID'], [[s, f'{v:.2f}'] for s, v in data['fids'].items()])]
-            md += [f'## CIFAR subset {size}: {data["updates"]} updates', '', str(data['fids']), '']
+            md += [f'## CIFAR subset {size}: {data["updates"]} updates', '', '| Update | FID |', '|---|---|']
+            md += [f'| {s} | {v:.2f} |' for s, v in data['fids'].items()]
             near = ROOT / f'artifacts/cifar/subset{size}_nearest.json'
             if near.exists():
                 distances = json.loads(near.read_text())
                 lines += [f'Median nearest-training-image pixel distance: generated '
                           f'{distances["median_generated_distance"]:.2f}; real test images '
                           f'{distances["median_test_distance"]:.2f}. The comparison uses 100 images per group.']
+                if distances['median_generated_distance'] < distances['median_test_distance']:
+                    lines += ['Generated samples are closer to the training set than real test images by this metric, '
+                              'a pattern consistent with memorization. The image pairs show how closely individual samples match.']
+                md += ['', f'Median nearest-training-image distance: generated '
+                       f'{distances["median_generated_distance"]:.2f}; real test '
+                       f'{distances["median_test_distance"]:.2f}.', '']
         else:
             lines += [f'\\paragraph{{CIFAR-10 training: {size} images.}} Results have not yet been imported.']
     if mnist.exists():
