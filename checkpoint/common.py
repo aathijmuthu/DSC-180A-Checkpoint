@@ -16,6 +16,13 @@ def cell_source(path, index):
     return ''.join(json.loads(Path(path).read_text())['cells'][index]['source'])
 
 
+def notebook_code_hash(path, indices):
+    """Fingerprint consumed code, independent of notebook answers and outputs."""
+    notebook = json.loads(Path(path).read_text())
+    source = [(i, ''.join(notebook['cells'][i]['source'])) for i in indices]
+    return hashlib.sha256(json.dumps(source, ensure_ascii=True).encode()).hexdigest()
+
+
 def definitions(source):
     tree = ast.parse(source)
     tree.body = [n for n in tree.body if isinstance(n, (ast.FunctionDef, ast.ClassDef, ast.Import, ast.ImportFrom))]

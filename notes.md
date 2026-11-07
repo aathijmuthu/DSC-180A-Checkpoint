@@ -1,6 +1,6 @@
 # Experiment notes
 
-## Predictions recorded before running experiments
+## Predictions recorded before the checkpoint experiments
 
 - At high CIFAR noise levels, denoiser estimates should show broad structure or class averages. Fine details should emerge at lower noise. The exact transition must be read from the trajectories.
 - With starting noise fixed, changing the requested class should change semantic content while potentially retaining some spatial or color structure.
@@ -8,43 +8,46 @@
 - Models trained on 100 or 1,000 CIFAR images may memorize. Compare nearest-training-image distances of generated images with those of real test images, and inspect pairs visually.
 - MNIST w=0 should ignore the request. Larger w may improve target matching at the expense of within-class variation. The evaluator can confidently misread malformed outputs.
 
-## Required observations after GPU runs
+## CIFAR notebook answers
 
-The entries below were recorded as work progressed; earlier active/queued statuses are historical. All required experiments are now complete. Final reported CIFAR results use DSMLP outputs.
+1. **High noise and unconditional trajectory:** At sigma=80, the clean-image estimate should be a smooth image near the data average. In the three saved seed-0 examples, recognizable content emerges between sigma=3.3 and 1.1. Composition changes little below about 0.3, while detail continues to sharpen. These thresholds describe these examples.
+2. **Changing the class with paired noise:** Coarse position, colors, and background can persist down a column, while object identity changes. The condition does not prescribe every pixel.
+3. **Increasing guidance:** Stronger guidance should emphasize the requested class but can reduce variation or distort shapes. The cat grid sharpens several faces, yet its sixth column remains dark and ambiguous at w=4.
+4. **Conditional trajectory questions (cat, seed 2):** Cats are recognizable by sigma=1.1 for both w=1 and w=4. The second w=4 image already has clearer ears/face at sigma=3.3. Composition is broadly stable below sigma=0.3; at low noise, w=4 strengthens contrast and face/fur detail and changes some poses or proportions.
+5. **2D FID exercise:** The shifted-mean panel has the largest FID, 2.27, almost entirely from its mean term. The low-variety panel has FID 0.69, mainly from covariance. Even the same-distribution, 30-point panel has FID about 0.01 because of finite-sample estimation.
+6. **Guidance choice and metric limits:** I favor w=1.5: 98.6% accuracy, global FID 30.96, and the lowest class FID, 107.16. Weight two gives the highest accuracy, 99.5%; larger weights worsen FID without improving accuracy. Accuracy can miss malformed images and lost diversity. Global FID ignores requests; class FID adds class information but has only 100 generated images per class. Visual checks remain necessary, and one paired seed does not establish significance for small score differences.
 
-- CIFAR trajectories (cat, seed 2): at what sigma is the class first visible for w=1 and w=4? From which sigma does each image barely change? How do the estimates differ at low noise?
-- Which CIFAR guidance weight would you choose, using accuracy, FID, FID_class, and visual inspection? Record ambiguities and artifacts.
-- For each training subset: describe FID versus update and sample/test nearest-neighbor distances. Pixel proximity is evidence of similarity, not proof of exact copying.
-- For MNIST: describe the accuracy/FID tradeoff for w=0,1,2,4 and identify malformed or ambiguous samples.
+The [completed CIFAR notebook](dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb) contains the runnable trajectory exercise, written answers, saved-figure links, and full sweep table. The sweep uses 1,000 balanced samples per weight and all 50,000 real training images for class references.
 
-## Observations from completed local checks
+## Restricted-data CIFAR observations
 
-- Frozen evaluator real-test accuracy: CIFAR-10 94.4% on all 10,000 test images; MNIST 99.32% on all 10,000 test digits. These evaluate classifiers, not generated samples.
-- The unconditional CIFAR trajectory (seed 0, three images) starts with nearly uniform blurred denoiser estimates at sigma=80. Recognizable content appears between the displayed sigma=3.3 and sigma=1.1 panels, depending on the image. Composition is broadly stable by sigma=0.3, with later sharpening. These three examples do not establish a general decision threshold.
-- Conditional trajectory answers (cat, seed 2): cat structure is evident by sigma=1.1 for both w=1 and w=4. In the second example, w=4 already shows clearer ears/face at sigma=3.3 than w=1. This supports earlier class visibility in that example, not a universal threshold. Composition changes little by sigma=0.3; later steps sharpen detail. At low noise, w=4 increases contrast and pronounced fur/face features and can change pose or proportions.
-- Cat guidance grid: w=0 produces diverse object classes, whereas conditional rows move toward cats. Larger weights sharpen several faces, but the sixth column stays dark and ambiguous and the first column changes body shape. Larger w is not uniformly preferable by visual inspection alone. A preferred weight awaits the numerical sweep.
-- MNIST evaluation at 6,500 updates, 1,000 images per weight: accuracy is 10.2%, 95.7%, 99.9%, 100% for w=0,1,2,4. Classifier-feature FID is 135.30, 24.21, 93.99, 210.66. Among tested weights, w=1 best matches the real feature distribution, while w=2 improves class accuracy at a substantial distribution-distance cost. In the paired first-ten grid, the requested seven is ambiguous at w=1 and clearer at larger weights. Within-class pixel spread decreases with guidance, but this alone is not proof of better images or generalization.
-- The laptop was closed during local training. Elapsed-time estimates included the suspended interval and overstated active compute time. After resuming from update 6,500, a fresh 20-update benchmark measured approximately 0.16 seconds/update. Keep the lid open; an idle-sleep inhibitor does not guarantee operation with the lid closed.
-- Final MNIST run: 10,000 updates, 1,000 images per weight, all four evaluations complete. At w=0,1,2,4, accuracy is 10.4%, 96.4%, 100%, 100%; classifier-feature FID is 106.40, 22.10, 85.14, 182.57. The preferred measured distribution match is w=1. If near-perfect requested-digit matching is the priority, w=2 achieves the same measured accuracy as w=4 with substantially lower feature FID. Accuracy is an evaluator's decision, not proof of image quality.
-- MNIST reproducibility detail: the local run resumed from update 6,500. That early checkpoint predated MPS RNG persistence, so CPU batch selection was restored but the MPS training-noise stream restarted from seed 0. Current checkpoints save CPU, CUDA, and MPS RNG states. All reported guidance settings use the same final checkpoint and paired evaluation noise; the interruption does not change that controlled comparison.
-- CIFAR training was checked with the exact 7M-parameter EDM architecture and EDMLoss on CPU and MPS, including backward and optimizer steps. A 20-update batch-64 MPS benchmark measured about 0.52 seconds/update while reference-feature extraction was running. The real 100-image training run is active; the initial stage ends at update 4,000 and the queued continuation keeps the 20,000-update snapshot schedule.
-- The optional full-data EDM dataset export was verified: 50,000 PNGs, 50,000 metadata labels, exactly 5,000 examples per class, and a valid ZIP archive. The optional full-network training run has not been launched.
-- DSMLP SSH was connected with the user's interactive authentication. A one-GPU batch job is queued as `dsc180-checkpoint`; account policy limits it to the small-GPU pool, which was busy at submission. The 1,500-update CIFAR subset checkpoint was transferred. Course containers mount the personal project at `/home/amuthu/private/DSC-180A-Checkpoint`.
-- Inception optimization: on four identical synthetic uint8 inputs, CPU/MPS features differed by at most 4.95e-6 (relative RMS 1.12e-6). A warmed 32-image MPS batch took about 0.84 seconds. The local sweep was restarted with MPS extraction while preserving all 50,000 real reference images. Float64 conversion and covariance calculations run on CPU. Earlier incomplete CPU reference extraction produced no reported FID results.
-- A Colab notebook was prepared as a GPU fallback. It uses the same required CIFAR settings and exports numerical results and figures for local review; its execution requires an available user-selected GPU runtime.
-- First local 100-image checkpoint: 4,000 updates, unconditional FID 74.13 on 1,000 generated images. For 100 generated versus 100 real test examples, median nearest-training-image pixel distances were 5.75 versus 23.67. The displayed boat, animal, and aircraft pairs share training-image scene structure and backgrounds; some outputs remain blurred approximations. This supports memorization without asserting every sample is an exact copy. The target run remains 20,000 updates, and the 1,000-image run is now active.
-- DSMLP subsequently acquired a GPU and completed the full guidance sweep and the 20,000-update 100-image run. The remaining 1,000-image run is active on CUDA. Duplicate local jobs were stopped and preserved under `artifacts/local_mps_archive_20261106_1810/`; current report files use the DSMLP outputs. The 100-image run resumed the transferred local 1,500-update checkpoint. The GPU 1,000-image run began from scratch before its local checkpoint transfer finished, so the incoming file was kept separate rather than replacing an active checkpoint.
-- Completed CUDA sweep, w=0,1,1.5,2,3,4: accuracy 11.0%, 95.8%, 98.6%, 99.5%, 99.1%, 99.0%; all-class FID 30.97, 30.93, 30.96, 32.22, 35.59, 38.22. Class FID for w>0: 111.40, 107.16, 107.87, 112.81, 116.79. We favor w=1.5 for this measured tradeoff, or w=2 for the highest measured class accuracy; larger weights offer no benefit in these measurements.
-- Completed CUDA 100-image run: FID at updates 4k,8k,12k,16k,20k is 73.04, 88.55, 98.54, 105.63, 106.83. The 200-update mean loss before the first and last snapshots is 0.0367 and 0.0179. Generated/test median nearest-training-image distances are 1.19/23.67. This shows why decreasing loss on a tiny training set is not evidence of generalization to the full data distribution.
-- Completed CUDA 1,000-image run: all 20,000 updates and five snapshots finished. FID at updates 4k,8k,12k,16k,20k is 92.00, 111.34, 121.21, 129.61, 132.47. The corresponding first/last 200-update mean losses are 0.1788/0.0694. Generated/test median nearest-training-image distances are 13.86/21.25. Several pairs share coarse layout or background, but many generated images are blurry partial matches. The evidence for exact copying is weaker than for the 100-image network; lower pixel distances can also arise from blurred averages. These runs do not establish that more training data is harmful, since optimization and capacity are held to the same limited budget.
-- Final trained-model CFG grids evaluate 100 samples per weight. At w=0,1,2,4, requested-class accuracies are 7%,96%,100%,100% for 100 training images and 10%,47%,74%,84% for 1,000 training images. Guidance improves class matching, but several 1,000-image-model outputs remain ambiguous or blurry even at w=4. These grid scores are separate from the 1,000-sample pretrained sweep.
-- Local numerical checks passed for FID identity/translation/symmetry, null-guidance independence from the request, null-label embedding gradients under dropout, the constant-denoiser sampler, checkpoint/optimizer/RNG restoration, and figure saving. A two-update MNIST run and a one-update resume also completed. Those generated outputs are smoke checks, not reported assignment results.
+Both models completed 20,000 updates and five 1,000-image unconditional snapshot evaluations.
 
-## Protocol decisions
+| Training images | FID at 4k / 8k / 12k / 16k / 20k | First/last snapshot mean loss | Generated/test nearest-image medians |
+|---|---|---|---|
+| 100 | 73.04 / 88.55 / 98.54 / 105.63 / 106.83 | 0.0367 / 0.0179 | 1.19 / 23.67 |
+| 1,000 | 92.00 / 111.34 / 121.21 / 129.61 / 132.47 | 0.1788 / 0.0694 | 13.86 / 21.25 |
 
-- CIFAR evaluation: 1,000 generated images, balanced requested classes, 18 Heun steps; all-class FID uses NVIDIA's training reference and FID_class uses real training images of each requested class. FID_class at w=0 is omitted because requests are ignored.
-- MNIST evaluation: 1,000 generated images, balanced requested digits, 32 deterministic DDIM steps, seed 1000; reference is all 10,000 held-out test digits, features are the frozen lab classifier's 128-dimensional representation. Report this as classifier-feature FID, not Inception FID.
-- MNIST training: all 60,000 training digits, fresh U-Net initialization (ch=64), uniform time on the lab cosine path, clean-image MSE, 10% label dropout, Adam at 2e-4, EMA. The assignment does not prescribe an update count; default budget is 10,000 updates of 128 images. This objective is our implementation choice; the supplied MNIST notebook contains no training loop.
-- Small CIFAR training: the notebook's 7M-parameter SongUNet/EDM preconditioner, EDMLoss, Adam at 2e-4, EMA, 10% label dropout, 20,000 updates of 64 images, five evaluated snapshots.
-- The 50,000-image full EDM training run is optional and has not been launched.
-- Any shortened training run must report its actual updates; no smoke run is a checkpoint result.
+Loss means use the 200 updates before each endpoint snapshot. Nearest-image comparisons use 100 generated and 100 real test images. The 100-image model closely reproduces training objects and backgrounds, supporting memorization. The 1,000-image model has blurry partial matches; smaller pixel distance alone can also reflect averaging. These fixed-budget runs do not show that more data harms diffusion models.
+
+At w=0,1,2,4, final CFG-grid accuracies over 100 samples per weight are 7%,96%,100%,100% for 100 training images and 10%,47%,74%,84% for 1,000 training images. Guidance improves matching, but several larger-subset outputs remain ambiguous. These grid scores are separate from the pretrained 1,000-image sweep.
+
+## MNIST checkpoint observations
+
+The new U-Net trained from scratch on all 60,000 digits for 10,000 updates. At w=0,1,2,4, accuracy is 10.4%,96.4%,100%,100%; classifier-feature FID is 106.40,22.10,85.14,182.57. Each setting uses 1,000 balanced samples against all 10,000 test digits in the frozen classifier's 128-dimensional feature space.
+
+I favor w=1 for the closest measured feature distribution, or w=2 for class matching. Weight four adds no measured accuracy gain and worsens FID. The paired requested seven is clearer at higher weights; classifier agreement alone does not prove image quality.
+
+## MNIST reference-lab exercises
+
+Prediction recorded before the final-audit run: changing the request should change digit identity without fixing every pixel; stronger guidance may improve matching but can reduce useful variation or exaggerate artifacts. The new comparison fixes seed 19, 40 images, and 16 steps.
+
+The [completed notebook](dsc180-d32-mnist-guidance-lab/guidance_mnist.ipynb) includes executed Parts 1–4, four grids, metric outputs, the 199-word comparison, and architecture answers. With the supplied frozen generator, requests 3/8 reach 100%/95% match at w=1. Target-three match at w=0,1,2,5 is 5%,100%,100%,100%; pixel spread at w=1,2,5 is 0.2118,0.1924,0.1933. The sixth displayed eight has crowded loops requiring visual review. No FID is reported for these 40-image exercises. These results are distinct from checkpoint scratch training.
+
+## Reproducibility and optional scope
+
+- Frozen-classifier real-test accuracies: CIFAR-10 94.4%; MNIST 99.32%, each on 10,000 real test images.
+- MNIST resumed at update 6,500 after laptop sleep. CPU batch-selection state was restored, but the early checkpoint did not preserve MPS RNG state, so the training-noise stream restarted. Current checkpoints save CPU/CUDA/MPS RNG states. All guidance comparisons use the same final weights and paired evaluation noise.
+- The 100-image CIFAR run resumed a 1,500-update Mac checkpoint on DSMLP CUDA. The 1,000-image run used CUDA from scratch. Final CIFAR figures and metrics use DSMLP outputs; local pilots are excluded from reported results.
+- The encouraged full-size EDM run was prepared but not run: the 50,000-image PNG archive, labels, class counts, and ZIP integrity were verified. No full-network training result is claimed.
+- E7 in `part2_mnist.ipynb`, trained-network trajectories, and the further-data/CFG extensions are optional and were not run.

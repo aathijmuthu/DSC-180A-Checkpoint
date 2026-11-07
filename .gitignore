@@ -1,9 +1,11 @@
 Oct_28_assignment (1).pdf
 .DS_Store
-.venv/
+.venv*/
 __pycache__/
 *.py[cod]
 .ipynb_checkpoints/
+dsc180-d32-mnist-guidance-lab/mnist_guidance_lab.py
+dsc180-d32-mnist-guidance-lab/lab.py
 downloads/
 data/
 outputs/
@@ -18,3 +20,6 @@ report/*.aux
 report/*.log
 report/*.out
 report/*.toc
+report/*.fdb_latexmk
+report/*.fls
+report/*.synctex.gz

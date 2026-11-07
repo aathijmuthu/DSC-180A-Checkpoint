@@ -1,13 +1,14 @@
 """Scientific invariants, independent of remote downloads or CUDA."""
 import tempfile
 import unittest
+import json
 from argparse import Namespace
 from pathlib import Path
 
 import torch
 
 from checkpoint.common import (ROOT, cell_source, definitions, frechet, gaussian,
-                               restore_rng, rng_state, save_torch, setup)
+                               notebook_code_hash, restore_rng, rng_state, save_torch, setup)
 from checkpoint.mnist import denoising_loss, lab_module
 
 
@@ -125,6 +126,52 @@ class Experiments(unittest.TestCase):
                 self.assertEqual(calls, [0, 1, 2, 2, 0])
         finally:
             plt.show = old_show
+
+    def test_notebook_answers_do_not_invalidate_equivalent_sweep_code(self):
+        from checkpoint.cifar import (NOTEBOOK, SWEEP_CELLS, ORIGINAL_NOTEBOOK_HASH,
+                                      ORIGINAL_SWEEP_CODE_HASH, cached_protocol)
+        digest = notebook_code_hash(NOTEBOOK, SWEEP_CELLS)
+        self.assertEqual(digest, ORIGINAL_SWEEP_CODE_HASH)
+        notebook = json.loads(NOTEBOOK.read_text())
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'lab.ipynb'
+            notebook['cells'][0]['source'].append('\nAn additional written answer.')
+            notebook['cells'][17]['source'].append('\n# Extra exercise commentary')
+            path.write_text(json.dumps(notebook))
+            self.assertEqual(notebook_code_hash(path, SWEEP_CELLS), digest)
+            notebook['cells'][15]['source'].append('\nW = [0, 1]')
+            path.write_text(json.dumps(notebook))
+            self.assertNotEqual(notebook_code_hash(path, SWEEP_CELLS), digest)
+        saved = dict(batch=32, n_eval=1000, steps=18, seed_base=1000,
+                     notebook_sha256=ORIGINAL_NOTEBOOK_HASH)
+        current = dict(batch=32, n_eval=1000, steps=18, seed_base=1000,
+                       notebook_code_sha256=digest, fid_device='cuda')
+        self.assertEqual(cached_protocol(saved, current, {'device': 'cuda'}), current)
+        self.assertNotEqual(cached_protocol(saved, current, {'device': 'cpu'}), current)
+        changed = dict(current, notebook_code_sha256='changed implementation')
+        self.assertNotEqual(cached_protocol(saved, changed, {'device': 'cuda'}), changed)
+
+    def test_rejected_sweep_cache_preserves_historical_manifest(self):
+        import matplotlib.pyplot as plt
+        from checkpoint.cifar import Lab, ORIGINAL_NOTEBOOK_HASH
+        previous_show = plt.show
+        try:
+            with tempfile.TemporaryDirectory() as directory:
+                out = Path(directory)
+                historical = {'device': 'cuda', 'git_commit': 'original experiment'}
+                (out / 'manifest_sweep.json').write_text(json.dumps(historical))
+                (out / 'sweep_protocol.json').write_text(json.dumps(dict(
+                    batch=32, n_eval=1000, steps=18, seed_base=1000,
+                    notebook_sha256=ORIGINAL_NOTEBOOK_HASH)))
+                (out / 'class_reference.pt').touch()
+                lab = Lab(Namespace(out=directory, task='sweep', batch=32, n_eval=1000))
+                lab.pending_sweep_manifest = {'device': 'cpu'}
+                lab.ns['FID_DEVICE'] = 'cpu'
+                with self.assertRaisesRegex(ValueError, 'Sampling configuration changed'):
+                    lab.sweep()
+                self.assertEqual(json.loads((out / 'manifest_sweep.json').read_text()), historical)
+        finally:
+            plt.show = previous_show
 
 
 if __name__ == '__main__':

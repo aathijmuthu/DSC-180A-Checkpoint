@@ -9,10 +9,26 @@ import os
 import time
 from pathlib import Path
 
-from .common import (ROOT, cell_source, definitions, manifest, restore_rng, rng_state,
+from .common import (ROOT, cell_source, definitions, manifest, notebook_code_hash, restore_rng, rng_state,
                      save_json, save_torch, setup)
 
 NOTEBOOK = ROOT / 'dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb'
+SWEEP_CELLS = (1, 3, 5, 7, 9, 15, 19, 21, 26, 27)
+# Historical results used this exact course source. Only answers and an unused
+# exercise cell have changed; verify consumed code before migrating old caches.
+ORIGINAL_NOTEBOOK_HASH = 'a3604a1438a06df87c271d7463cf6d823e2cc04dbd680c08094d91cd39acea1a'
+ORIGINAL_SWEEP_CODE_HASH = '62b080802b61d139366ffd0aa25c49a192862478a73db8f49d292ed1a9fb34eb'
+
+
+def cached_protocol(saved, current, previous_manifest):
+    saved = dict(saved)
+    if (saved.get('notebook_sha256') == ORIGINAL_NOTEBOOK_HASH
+            and current['notebook_code_sha256'] == ORIGINAL_SWEEP_CODE_HASH):
+        saved.pop('notebook_sha256')
+        saved['notebook_code_sha256'] = current['notebook_code_sha256']
+    if 'fid_device' not in saved and previous_manifest:
+        saved['fid_device'] = previous_manifest.get('fid_device', previous_manifest.get('device'))
+    return saved
 
 
 class Lab:
@@ -24,6 +40,8 @@ class Lab:
         self.args = args
         self.out = Path(args.out).resolve()
         self.out.mkdir(parents=True, exist_ok=True)
+        previous = self.out / f'manifest_{getattr(args, "task", "sweep")}.json'
+        self.previous_manifest = json.loads(previous.read_text()) if previous.exists() else {}
         self.ns = {'__name__': '__course_lab__'}
         self.name, self.count = 'figure', 0
         plt.show = self.save_figures
@@ -76,7 +94,11 @@ class Lab:
         self.ns['OUT'] = self.out
         metadata = manifest(self.args_for_manifest(), self.args.device_object)
         metadata['fid_device'] = str(fid_device)
-        save_json(self.out / f'manifest_{self.args.task}.json', metadata)
+        if self.args.task == 'sweep':
+            # Preserve historical device/source evidence if cache validation fails.
+            self.pending_sweep_manifest = metadata
+        else:
+            save_json(self.out / f'manifest_{self.args.task}.json', metadata)
 
     def args_for_manifest(self):
         import argparse
@@ -97,18 +119,19 @@ class Lab:
 
     def sweep(self):
         import torch
-        import hashlib
         ns = self.ns
         protocol = dict(batch=self.args.batch, n_eval=self.args.n_eval, steps=18, seed_base=1000,
-                        notebook_sha256=hashlib.sha256(NOTEBOOK.read_bytes()).hexdigest(),
+                        notebook_code_sha256=notebook_code_hash(NOTEBOOK, SWEEP_CELLS),
                         fid_device=str(ns.get('FID_DEVICE', 'cpu')))
         path = self.out / 'sweep_protocol.json'
-        if path.exists() and json.loads(path.read_text()) != protocol:
+        if path.exists() and cached_protocol(json.loads(path.read_text()), protocol, self.previous_manifest) != protocol:
             cached = (any(self.out.glob('cfg_w*_n*.npz')) or any(self.out.glob('cfg_sweep_n*.json'))
                       or (self.out / 'class_reference.pt').exists())
             if cached:
                 raise ValueError('Sampling configuration changed; use a different --out directory to avoid stale cached results')
         save_json(path, protocol)
+        if hasattr(self, 'pending_sweep_manifest'):
+            save_json(self.out / 'manifest_sweep.json', self.pending_sweep_manifest)
         self.cell(26, only_definitions=True)
         # Reference moments are expensive to compute. Reuse the exact double-
         # precision moments on reruns, and persist each completed guidance weight.

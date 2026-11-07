@@ -31,11 +31,13 @@ case "${1:-all}" in
     run cifar_train1000 -m checkpoint.cifar train1000 --updates "${CIFAR_UPDATES:-20000}"
     ;;
   mnist)
+    run mnist_lab -m checkpoint.mnist_lab
     run mnist -m checkpoint.mnist --updates "${MNIST_UPDATES:-10000}"
     ;;
   all)
     run cifar_figures -m checkpoint.cifar figures
     run cifar_sweep -m checkpoint.cifar sweep
+    run mnist_lab -m checkpoint.mnist_lab
     run mnist -m checkpoint.mnist --updates "${MNIST_UPDATES:-10000}"
     run cifar_train100 -m checkpoint.cifar train100 --updates "${CIFAR_UPDATES:-20000}"
     run cifar_train1000 -m checkpoint.cifar train1000 --updates "${CIFAR_UPDATES:-20000}"

@@ -4,6 +4,8 @@ Individual project by Aathi Muthu, based on Karras et al., [Elucidating the Desi
 
 [Report PDF](report/main.pdf) · [Results](RESULTS.md) · [Predictions and observations](notes.md)
 
+Completed notebook answers: [CIFAR lab](dsc180-d32-cifar10-edm-lab/cifar10_edm_lab.ipynb) and [MNIST guidance lab, Parts 1–4](dsc180-d32-mnist-guidance-lab/guidance_mnist.ipynb). The latter includes executed comparisons using the supplied frozen generator; the checkpoint's MNIST model is trained separately from scratch. `part2_mnist.ipynb` is an optional course reference; E7 was not run.
+
 All required experiments are complete: the six-weight CIFAR-10 sweep, two 20,000-update CIFAR training runs, and MNIST training and evaluation. The encouraged full-size EDM run was prepared but not run.
 
 ## Setup and data
@@ -35,9 +37,10 @@ Run commands from the repository root. Output paths below are relative to `artif
 | `python -m checkpoint.cifar train100` | `cifar/subset100_training.png` (loss/FID), `subset100_nearest.png` and `.json`, `subset100_cfg.png`, `subset100_training.json`; supplementary `subset100_training_2.png` |
 | `python -m checkpoint.cifar train1000` | Same outputs with prefix `subset1000` |
 | `python -m checkpoint.mnist` | `mnist/cfg_grid.png`, `cfg_metrics.png`, `metrics.json`, `metrics.csv`; supplementary `loss.png` and checkpoints |
+| `python -m checkpoint.mnist_lab` | Executes the frozen-generator MNIST lab on CPU and saves four grids and metric outputs inside `guidance_mnist.ipynb`; no FID for its 40-image comparisons |
 | `python -m checkpoint.summarize` | `RESULTS.md` and the four report tables in `report/results.tex` |
 
-Training resumes from `latest.pt`; the CIFAR sweep reuses cached results. For a fresh experiment, append `--out artifacts/reproduction-cifar` to each CIFAR command or `--out artifacts/reproduction-mnist` to the MNIST command. Keep sampling batch size and other settings fixed across paired comparisons. Report tables read the default output directories.
+Training resumes from `latest.pt`; the CIFAR sweep reuses cached results. For a fresh checkpoint experiment, append `--out artifacts/reproduction-cifar` to each CIFAR command or `--out artifacts/reproduction-mnist` to `python -m checkpoint.mnist`. Keep sampling batch size and other settings fixed across paired comparisons. Report tables read the default output directories.
 
 ## Experiment settings
 
@@ -61,4 +64,4 @@ The [Colab runner](https://colab.research.google.com/github/aathijmuthu/DSC-180A
 
 ## AI use
 
-I used OpenAI Codex to help with code development, debugging, experiment automation, and wording edits. My understanding of the methods comes from reading the EDM paper myself.
+I used OpenAI Codex for development, debugging, experiment automation, and writing assistance. My understanding of the methods comes from reading the EDM paper myself.
